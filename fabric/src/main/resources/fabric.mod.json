@@ -3,6 +3,7 @@
   "id": "voxyseeu",
   "version": "${version}",
   "name": "Voxy SeeU",
+  "icon": "assets/voxyseeu/icon.png",
   "description": "Distant player proxies for Voxy terrain LOD rendering.",
   "authors": [
     "Keryesh4ka"
