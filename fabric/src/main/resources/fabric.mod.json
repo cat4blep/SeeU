@@ -4,7 +4,7 @@
   "version": "${version}",
   "name": "SeeU",
   "icon": "assets/seeu/icon.png",
-  "description": "Distant player proxies for Voxy terrain LOD rendering.",
+  "description": "Distant player proxies beyond vanilla entity render distance. Works with or without Voxy.",
   "authors": [
     "Keryesh4ka"
   ],
