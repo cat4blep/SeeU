@@ -18,7 +18,7 @@ The client renders distant player proxies only. Terrain LOD remains handled by V
 
 ## Build
 
-The project targets Java 25 and `26.1.2`.
+The project targets Java 25 and MC `26.1.2`.
 
 ```powershell
 ./gradlew build
