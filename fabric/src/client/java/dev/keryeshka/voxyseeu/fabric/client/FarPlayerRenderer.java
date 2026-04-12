@@ -136,18 +136,27 @@ final class FarPlayerRenderer {
 
     private boolean canRenderProxy(ClientLevel level, TrackedFarPlayer tracked, Vec3 cameraPosition, Vec3 position) {
         Vec3[] visibilitySamples = visibilitySamples(tracked, position);
+        boolean hasSupport = false;
+        for (Vec3 sample : visibilitySamples) {
+            int chunkX = Mth.floor(sample.x) >> 4;
+            int chunkZ = Mth.floor(sample.z) >> 4;
+            if (level.hasChunk(chunkX, chunkZ) || voxyAccess.hasRenderableData(level, sample)) {
+                hasSupport = true;
+                break;
+            }
+        }
+        if (!hasSupport) {
+            return false;
+        }
+
         try (VoxyAccess.RaycastSession raycast = voxyAccess.openRaycast(level)) {
             for (Vec3 sample : visibilitySamples) {
-                int chunkX = Mth.floor(sample.x) >> 4;
-                int chunkZ = Mth.floor(sample.z) >> 4;
-                if (level.hasChunk(chunkX, chunkZ)) {
-                    if (!isOccluded(level, cameraPosition, sample, raycast)) {
-                        return true;
+                if (!raycast.hasRenderableData(sample)) {
+                    int chunkX = Mth.floor(sample.x) >> 4;
+                    int chunkZ = Mth.floor(sample.z) >> 4;
+                    if (!level.hasChunk(chunkX, chunkZ)) {
+                        continue;
                     }
-                    continue;
-                }
-                if (!raycast.hasRenderableData(sample) || voxyAccess.isOccludedByDepth(level, sample)) {
-                    continue;
                 }
                 if (!isOccluded(level, cameraPosition, sample, raycast)) {
                     return true;
