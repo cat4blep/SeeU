@@ -146,9 +146,7 @@ final class FarPlayerRenderer {
                     }
                     continue;
                 }
-                if (!raycast.hasRenderableData(sample)
-                        || !voxyAccess.hasDepthSupport(level, sample)
-                        || voxyAccess.isOccludedByDepth(level, sample)) {
+                if (!raycast.hasRenderableData(sample) || voxyAccess.isOccludedByDepth(level, sample)) {
                     continue;
                 }
                 if (!isOccluded(level, cameraPosition, sample, raycast)) {
