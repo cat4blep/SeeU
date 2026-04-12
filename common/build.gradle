@@ -3,7 +3,7 @@ plugins {
 }
 
 base {
-    archivesName = "voxyseeu-common"
+    archivesName = "seeu-common"
 }
 
 java {

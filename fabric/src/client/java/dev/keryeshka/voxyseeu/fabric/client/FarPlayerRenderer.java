@@ -2,8 +2,10 @@ package dev.keryeshka.voxyseeu.fabric.client;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.vertex.PoseStack;
+import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
 import dev.keryeshka.voxyseeu.fabric.client.config.VoxySeeUClientConfig;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderContext;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -12,8 +14,16 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,11 +35,12 @@ import java.util.Set;
 import java.util.UUID;
 
 final class FarPlayerRenderer {
-    private static final Logger LOGGER = LoggerFactory.getLogger("VoxySeeU");
+    private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
 
     private final FarPlayerTracker tracker;
     private final VoxySeeUClientConfig config;
     private final Map<UUID, FarPlayerRenderProxy> proxies = new HashMap<>();
+    private final Map<UUID, Entity> vehicles = new HashMap<>();
     private boolean loggedFirstSubmission;
 
     FarPlayerRenderer(FarPlayerTracker tracker, VoxySeeUClientConfig config) {
@@ -38,7 +49,11 @@ final class FarPlayerRenderer {
     }
 
     void clear() {
+        for (Entity vehicle : vehicles.values()) {
+            vehicle.ejectPassengers();
+        }
         proxies.clear();
+        vehicles.clear();
         loggedFirstSubmission = false;
     }
 
@@ -65,6 +80,11 @@ final class FarPlayerRenderer {
         long now = System.nanoTime();
 
         Set<UUID> active = new HashSet<>();
+        Set<UUID> activeVehicles = new HashSet<>();
+        Set<UUID> submittedVehicles = new HashSet<>();
+        for (Entity vehicle : vehicles.values()) {
+            vehicle.ejectPassengers();
+        }
         for (TrackedFarPlayer tracked : tracker.players()) {
             Vec3 position = tracked.renderPosition(now);
             double distance = position.distanceTo(localPlayer.position());
@@ -92,6 +112,40 @@ final class FarPlayerRenderer {
             proxy.apply(tracked, position, config.renderNameTags, config.maximumRenderDistanceBlocks, animationTick, now);
             active.add(tracked.uuid());
 
+            if (tracked.hasVehicle()) {
+                Entity vehicle = vehicles.compute(tracked.vehicleUuid(), (uuid, current) -> {
+                    if (current == null || current.level() != level || !BuiltInRegistries.ENTITY_TYPE.getKey(current.getType()).toString().equals(tracked.vehicleTypeId())) {
+                        return createVehicleProxy(level, tracked.vehicleTypeId());
+                    }
+                    return current;
+                });
+                if (vehicle != null) {
+                    applyVehicleState(vehicle, tracked, now);
+                    activeVehicles.add(tracked.vehicleUuid());
+                    if (proxy.getVehicle() != vehicle) {
+                        proxy.stopRiding();
+                        proxy.startRiding(vehicle);
+                    }
+                    if (submittedVehicles.add(tracked.vehicleUuid())) {
+                        var vehicleRenderState = dispatcher.extractEntity(vehicle, partialTick);
+                        Vec3 vehiclePosition = tracked.renderVehiclePosition(now);
+                        dispatcher.submit(
+                                vehicleRenderState,
+                                context.levelState().cameraRenderState,
+                                vehiclePosition.x - cameraPosition.x,
+                                vehiclePosition.y - cameraPosition.y,
+                                vehiclePosition.z - cameraPosition.z,
+                                poseStack,
+                                context.submitNodeCollector()
+                        );
+                    }
+                } else {
+                    proxy.stopRiding();
+                }
+            } else {
+                proxy.stopRiding();
+            }
+
             var renderState = dispatcher.extractEntity(proxy, partialTick);
             dispatcher.submit(
                     renderState,
@@ -114,6 +168,44 @@ final class FarPlayerRenderer {
         }
 
         proxies.keySet().removeIf(uuid -> !active.contains(uuid));
+        vehicles.entrySet().removeIf(entry -> !activeVehicles.contains(entry.getKey()));
+    }
+
+    private static Entity createVehicleProxy(ClientLevel level, String entityTypeId) {
+        try {
+            EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(entityTypeId));
+            if (entityType == null) {
+                return null;
+            }
+            Entity entity = entityType.create(level, EntitySpawnReason.LOAD);
+            if (entity == null) {
+                return null;
+            }
+            entity.noPhysics = true;
+            entity.setNoGravity(true);
+            entity.setInvisible(false);
+            return entity;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private static void applyVehicleState(Entity vehicle, TrackedFarPlayer tracked, long now) {
+        Vec3 position = tracked.renderVehiclePosition(now);
+        float yaw = tracked.renderVehicleYaw(now);
+        float pitch = tracked.renderVehiclePitch(now);
+        vehicle.setOldPosAndRot(position, yaw, pitch);
+        vehicle.xo = position.x;
+        vehicle.yo = position.y;
+        vehicle.zo = position.z;
+        vehicle.xOld = position.x;
+        vehicle.yOld = position.y;
+        vehicle.zOld = position.z;
+        vehicle.snapTo(position, yaw, pitch);
+        vehicle.setYRot(yaw);
+        vehicle.yRotO = yaw;
+        vehicle.setXRot(pitch);
+        vehicle.xRotO = pitch;
     }
 
     private static Pose resolvePose(TrackedFarPlayer tracked) {
@@ -175,6 +267,12 @@ final class FarPlayerRenderer {
             this.setShiftKeyDown(tracked.sneaking());
             this.setSwimming(tracked.swimming());
             this.setPose(resolvePose(tracked));
+            this.setItemSlot(EquipmentSlot.MAINHAND, createItemStack(tracked.mainHand()));
+            this.setItemSlot(EquipmentSlot.OFFHAND, createItemStack(tracked.offHand()));
+            this.setItemSlot(EquipmentSlot.FEET, createItemStack(tracked.feet()));
+            this.setItemSlot(EquipmentSlot.LEGS, createItemStack(tracked.legs()));
+            this.setItemSlot(EquipmentSlot.CHEST, createItemStack(tracked.chest()));
+            this.setItemSlot(EquipmentSlot.HEAD, createItemStack(tracked.head()));
             this.setCustomName(Component.literal(tracked.name()));
             this.setCustomNameVisible(renderNameTags);
         }
@@ -193,6 +291,21 @@ final class FarPlayerRenderer {
         public boolean shouldRenderAtSqrDistance(double distanceSquared) {
             double maxDistance = Math.max(64, maximumRenderDistanceBlocks);
             return distanceSquared <= maxDistance * maxDistance;
+        }
+    }
+
+    private static ItemStack createItemStack(FarItemSnapshot snapshot) {
+        if (snapshot == null || snapshot.isEmpty()) {
+            return ItemStack.EMPTY;
+        }
+        try {
+            Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(snapshot.itemId()));
+            if (item == null || item == Items.AIR) {
+                return ItemStack.EMPTY;
+            }
+            return new ItemStack(item, Math.max(1, snapshot.count()));
+        } catch (Exception ignored) {
+            return ItemStack.EMPTY;
         }
     }
 }

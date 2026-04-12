@@ -2,8 +2,10 @@ package dev.keryeshka.voxyseeu.paper;
 
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
 import dev.keryeshka.voxyseeu.common.protocol.ClientHelloPacket;
+import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayerSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayersPacket;
+import dev.keryeshka.voxyseeu.common.protocol.FarVehicleSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.PacketCodec;
 import dev.keryeshka.voxyseeu.common.protocol.ProtocolConstants;
 import io.netty.buffer.ByteBuf;
@@ -11,7 +13,10 @@ import io.netty.buffer.Unpooled;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,13 +35,23 @@ final class PaperFarPlayerService {
     void handleHello(Player player, byte[] bytes) {
         ByteBuf buf = Unpooled.wrappedBuffer(bytes);
         ClientHelloPacket packet = PacketCodec.decodeClientHello(buf);
+        if (packet.protocolVersion() != SharedDefaults.PROTOCOL_VERSION) {
+            subscribers.remove(player.getUniqueId());
+            plugin.getLogger().warning(String.format(
+                    "Ignoring SeeU hello from %s because protocol %d does not match %d",
+                    player.getName(),
+                    packet.protocolVersion(),
+                    SharedDefaults.PROTOCOL_VERSION
+            ));
+            return;
+        }
         subscribers.put(player.getUniqueId(), new ClientSettings(
                 packet.enabled(),
                 Math.max(0, packet.maximumRenderDistanceBlocks()),
                 Math.max(0, packet.minimumProxyDistanceBlocks())
         ));
         plugin.getLogger().info(String.format(
-                "Received VoxySeeU hello from %s: enabled=%s, maxDistance=%d, minDistance=%d",
+                "Received SeeU hello from %s: enabled=%s, maxDistance=%d, minDistance=%d",
                 player.getName(),
                 packet.enabled(),
                 packet.maximumRenderDistanceBlocks(),
@@ -100,6 +115,7 @@ final class PaperFarPlayerService {
                 }
 
                 Location location = target.getLocation();
+                EntityEquipment equipment = target.getEquipment();
                 snapshots.add(new FarPlayerSnapshot(
                         target.getUniqueId(),
                         target.getName(),
@@ -111,7 +127,14 @@ final class PaperFarPlayerService {
                         location.getPitch(),
                         target.isSneaking(),
                         target.isGliding(),
-                        target.isSwimming()
+                        target.isSwimming(),
+                        toItemSnapshot(equipment == null ? null : equipment.getItemInMainHand()),
+                        toItemSnapshot(equipment == null ? null : equipment.getItemInOffHand()),
+                        toItemSnapshot(equipment == null ? null : equipment.getBoots()),
+                        toItemSnapshot(equipment == null ? null : equipment.getLeggings()),
+                        toItemSnapshot(equipment == null ? null : equipment.getChestplate()),
+                        toItemSnapshot(equipment == null ? null : equipment.getHelmet()),
+                        toVehicleSnapshot(target.getVehicle())
                 ));
             }
 
@@ -130,5 +153,28 @@ final class PaperFarPlayerService {
             int maximumRenderDistanceBlocks,
             int minimumProxyDistanceBlocks
     ) {
+    }
+
+    private static FarItemSnapshot toItemSnapshot(ItemStack stack) {
+        if (stack == null || stack.getType().isAir() || stack.getAmount() <= 0) {
+            return FarItemSnapshot.EMPTY;
+        }
+        return new FarItemSnapshot(stack.getType().getKey().toString(), stack.getAmount());
+    }
+
+    private static FarVehicleSnapshot toVehicleSnapshot(Entity entity) {
+        if (entity == null) {
+            return null;
+        }
+        Location location = entity.getLocation();
+        return new FarVehicleSnapshot(
+                entity.getUniqueId(),
+                entity.getType().getKey().toString(),
+                location.getX(),
+                location.getY(),
+                location.getZ(),
+                location.getYaw(),
+                location.getPitch()
+        );
     }
 }

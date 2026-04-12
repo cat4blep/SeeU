@@ -3,7 +3,10 @@ package dev.keryeshka.voxyseeu.fabric.config;
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
 import net.fabricmc.loader.api.FabricLoader;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 
 public final class VoxySeeUServerConfig {
     private static final int CURRENT_CONFIG_VERSION = 3;
@@ -17,7 +20,9 @@ public final class VoxySeeUServerConfig {
     public boolean sendSpectators = SharedDefaults.DEFAULT_SEND_SPECTATORS;
 
     public static VoxySeeUServerConfig load() {
-        Path path = FabricLoader.getInstance().getConfigDir().resolve("voxyseeu-server.json");
+        Path configDir = FabricLoader.getInstance().getConfigDir();
+        Path path = configDir.resolve("seeu-server.json");
+        migrateLegacyConfigPath(configDir.resolve("voxyseeu-server.json"), path);
         VoxySeeUServerConfig config = JsonConfigIO.load(path, VoxySeeUServerConfig.class, VoxySeeUServerConfig::new);
         if (config.configVersion < CURRENT_CONFIG_VERSION
                 && config.minimumProxyDistanceBlocks == LEGACY_GAP_DISTANCE_BLOCKS) {
@@ -29,5 +34,15 @@ public final class VoxySeeUServerConfig {
         config.minimumProxyDistanceBlocks = Math.max(0, config.minimumProxyDistanceBlocks);
         JsonConfigIO.save(path, config);
         return config;
+    }
+
+    private static void migrateLegacyConfigPath(Path legacyPath, Path path) {
+        if (Files.exists(path) || !Files.exists(legacyPath)) {
+            return;
+        }
+        try {
+            Files.copy(legacyPath, path, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException ignored) {
+        }
     }
 }

@@ -1,15 +1,21 @@
 package dev.keryeshka.voxyseeu.fabric.server;
 
 import dev.keryeshka.voxyseeu.common.protocol.ClientHelloPacket;
+import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayerSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayersPacket;
+import dev.keryeshka.voxyseeu.common.protocol.FarVehicleSnapshot;
 import dev.keryeshka.voxyseeu.fabric.config.VoxySeeUServerConfig;
 import dev.keryeshka.voxyseeu.fabric.network.FarPlayersPayload;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.item.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,6 +41,10 @@ public final class FabricFarPlayerService {
 
     public void handleHello(ServerPlayer player, ClientHelloPacket packet) {
         if (!config.enabled) {
+            subscribers.remove(player.getUUID());
+            return;
+        }
+        if (packet.protocolVersion() != dev.keryeshka.voxyseeu.common.SharedDefaults.PROTOCOL_VERSION) {
             subscribers.remove(player.getUUID());
             return;
         }
@@ -107,7 +117,14 @@ public final class FabricFarPlayerService {
                     target.getXRot(),
                     target.isShiftKeyDown(),
                     target.isFallFlying(),
-                    target.isSwimming()
+                    target.isSwimming(),
+                    toItemSnapshot(target.getMainHandItem()),
+                    toItemSnapshot(target.getOffhandItem()),
+                    toItemSnapshot(target.getItemBySlot(EquipmentSlot.FEET)),
+                    toItemSnapshot(target.getItemBySlot(EquipmentSlot.LEGS)),
+                    toItemSnapshot(target.getItemBySlot(EquipmentSlot.CHEST)),
+                    toItemSnapshot(target.getItemBySlot(EquipmentSlot.HEAD)),
+                    toVehicleSnapshot(target.getVehicle())
             ));
         }
 
@@ -120,5 +137,27 @@ public final class FabricFarPlayerService {
             int maximumRenderDistanceBlocks,
             int minimumProxyDistanceBlocks
     ) {
+    }
+
+    private static FarItemSnapshot toItemSnapshot(ItemStack stack) {
+        if (stack == null || stack.isEmpty()) {
+            return FarItemSnapshot.EMPTY;
+        }
+        return new FarItemSnapshot(BuiltInRegistries.ITEM.getKey(stack.getItem()).toString(), stack.getCount());
+    }
+
+    private static FarVehicleSnapshot toVehicleSnapshot(Entity entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new FarVehicleSnapshot(
+                entity.getUUID(),
+                BuiltInRegistries.ENTITY_TYPE.getKey(entity.getType()).toString(),
+                entity.getX(),
+                entity.getY(),
+                entity.getZ(),
+                entity.getYRot(),
+                entity.getXRot()
+        );
     }
 }

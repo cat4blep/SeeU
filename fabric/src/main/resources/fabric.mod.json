@@ -1,8 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "voxyseeu",
+  "id": "seeu",
   "version": "${version}",
-  "name": "Voxy SeeU",
+  "name": "SeeU",
+  "icon": "assets/seeu/icon.png",
   "description": "Distant player proxies for Voxy terrain LOD rendering.",
   "authors": [
     "Keryesh4ka"

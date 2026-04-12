@@ -44,6 +44,18 @@ public final class PacketCodec {
             buf.writeBoolean(player.sneaking());
             buf.writeBoolean(player.gliding());
             buf.writeBoolean(player.swimming());
+            encodeItem(buf, player.mainHand());
+            encodeItem(buf, player.offHand());
+            encodeItem(buf, player.feet());
+            encodeItem(buf, player.legs());
+            encodeItem(buf, player.chest());
+            encodeItem(buf, player.head());
+            if (player.vehicle() == null) {
+                buf.writeBoolean(false);
+            } else {
+                buf.writeBoolean(true);
+                encodeVehicle(buf, player.vehicle());
+            }
         }
     }
 
@@ -63,10 +75,49 @@ public final class PacketCodec {
                     buf.readFloat(),
                     buf.readBoolean(),
                     buf.readBoolean(),
-                    buf.readBoolean()
+                    buf.readBoolean(),
+                    decodeItem(buf),
+                    decodeItem(buf),
+                    decodeItem(buf),
+                    decodeItem(buf),
+                    decodeItem(buf),
+                    decodeItem(buf),
+                    buf.readBoolean() ? decodeVehicle(buf) : null
             ));
         }
         return new FarPlayersPacket(dimensionKey, List.copyOf(players));
+    }
+
+    private static void encodeItem(ByteBuf buf, FarItemSnapshot item) {
+        FarItemSnapshot snapshot = item == null ? FarItemSnapshot.EMPTY : item;
+        writeUtf(buf, snapshot.itemId());
+        writeVarInt(buf, snapshot.count());
+    }
+
+    private static FarItemSnapshot decodeItem(ByteBuf buf) {
+        return new FarItemSnapshot(readUtf(buf), readVarInt(buf));
+    }
+
+    private static void encodeVehicle(ByteBuf buf, FarVehicleSnapshot vehicle) {
+        writeUuid(buf, vehicle.uuid());
+        writeUtf(buf, vehicle.entityTypeId());
+        buf.writeDouble(vehicle.x());
+        buf.writeDouble(vehicle.y());
+        buf.writeDouble(vehicle.z());
+        buf.writeFloat(vehicle.yaw());
+        buf.writeFloat(vehicle.pitch());
+    }
+
+    private static FarVehicleSnapshot decodeVehicle(ByteBuf buf) {
+        return new FarVehicleSnapshot(
+                readUuid(buf),
+                readUtf(buf),
+                buf.readDouble(),
+                buf.readDouble(),
+                buf.readDouble(),
+                buf.readFloat(),
+                buf.readFloat()
+        );
     }
 
     private static void writeUuid(ByteBuf buf, UUID uuid) {

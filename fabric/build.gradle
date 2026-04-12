@@ -4,14 +4,14 @@ plugins {
 }
 
 base {
-    archivesName = "voxyseeu-fabric"
+    archivesName = "seeu-fabric"
 }
 
 loom {
     splitEnvironmentSourceSets()
 
     mods {
-        "voxyseeu" {
+        "seeu" {
             sourceSet sourceSets.main
             sourceSet sourceSets.client
         }

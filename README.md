@@ -1,6 +1,6 @@
-# Voxy SeeU
+# SeeU
 
-`Voxy SeeU` is a cross-platform addon for Voxy that makes distant players visible far beyond vanilla entity tracking.
+`SeeU` is a cross-platform addon for Voxy that makes distant players visible far beyond vanilla entity tracking.
 
 It contains:
 

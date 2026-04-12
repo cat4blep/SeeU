@@ -10,6 +10,11 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+
 public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessageListener, Listener {
     private static final int CURRENT_CONFIG_VERSION = 3;
     private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
@@ -18,6 +23,7 @@ public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessa
 
     @Override
     public void onEnable() {
+        migrateLegacyDataFolder();
         saveDefaultConfig();
         migrateLegacyConfig();
 
@@ -64,5 +70,21 @@ public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessa
 
         getConfig().set("config-version", CURRENT_CONFIG_VERSION);
         saveConfig();
+    }
+
+    private void migrateLegacyDataFolder() {
+        Path currentFolder = getDataFolder().toPath();
+        Path legacyFolder = currentFolder.resolveSibling("VoxySeeU");
+        Path currentConfig = currentFolder.resolve("config.yml");
+        Path legacyConfig = legacyFolder.resolve("config.yml");
+        if (Files.exists(currentConfig) || !Files.exists(legacyConfig)) {
+            return;
+        }
+        try {
+            Files.createDirectories(currentFolder);
+            Files.copy(legacyConfig, currentConfig, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException exception) {
+            getLogger().warning("Failed to migrate legacy VoxySeeU config into SeeU folder: " + exception.getMessage());
+        }
     }
 }
