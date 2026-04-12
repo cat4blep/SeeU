@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "voxyseeu",
+  "version": "${version}",
+  "name": "Voxy SeeU",
+  "description": "Distant player proxies for Voxy terrain LOD rendering.",
+  "authors": [
+    "Keryesh4ka"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.keryeshka.voxyseeu.fabric.VoxySeeUFabric"
+    ],
+    "client": [
+      "dev.keryeshka.voxyseeu.fabric.client.VoxySeeUClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "fabric-api": "*"
+  }
+}

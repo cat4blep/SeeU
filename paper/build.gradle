@@ -1,0 +1,52 @@
+plugins {
+    id "java-library"
+    id "maven-publish"
+}
+
+base {
+    archivesName = "voxyseeu-paper"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(project.java_version as int)
+    }
+
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = project.java_version as int
+}
+
+tasks.named("jar") {
+    from(project(":common").sourceSets.main.output)
+}
+
+tasks.named("sourcesJar") {
+    from(project(":common").sourceSets.main.allSource)
+}
+
+dependencies {
+    implementation project(":common")
+    compileOnly "io.papermc.paper:paper-api:${project.paper_api_version}"
+    compileOnly "io.netty:netty-buffer:${project.netty_version}"
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("plugin.yml") {
+        expand(version: project.version)
+    }
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+}

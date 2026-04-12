@@ -1,0 +1,10 @@
+allprojects {
+    group = project.maven_group
+    version = project.mod_version
+
+    repositories {
+        mavenCentral()
+        maven { url = "https://maven.fabricmc.net/" }
+        maven { url = "https://repo.papermc.io/repository/maven-public/" }
+    }
+}

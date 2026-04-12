@@ -1,0 +1,6 @@
+name: VoxySeeU
+version: ${version}
+main: dev.keryeshka.voxyseeu.paper.VoxySeeUPaperPlugin
+api-version: "1.21"
+author: Keryesh4ka
+description: Streams distant player proxies to the Voxy SeeU Fabric client.

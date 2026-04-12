@@ -1,0 +1,4 @@
+.gradle/
+.tools/
+build/
+*/build/

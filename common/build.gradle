@@ -1,0 +1,24 @@
+plugins {
+    id "java-library"
+}
+
+base {
+    archivesName = "voxyseeu-common"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(project.java_version as int)
+    }
+
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = project.java_version as int
+}
+
+dependencies {
+    compileOnly "io.netty:netty-buffer:${project.netty_version}"
+}
