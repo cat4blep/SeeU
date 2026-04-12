@@ -2,8 +2,6 @@
 
 `SeeU` is a mod that lets you see players far beyond vanilla entity render distance.
 
-`Voxy` is optional. `SeeU` works without it, but if `Voxy` is installed then distant player proxies can be seen on top of Voxy terrain too.
-
 ## What It Does
 
 - renders distant players outside vanilla entity range
@@ -26,30 +24,6 @@ Each client renders those snapshots as remote player proxies only when the real 
 - Fabric client
 - `Voxy` optional on the client
 - Server side: either `Paper` plugin or `Fabric` server with the same sender built into the mod
-
-## Project Structure
-
-- `common` - shared protocol, packet codec and defaults
-- `fabric` - Fabric mod for client rendering and optional Fabric server support
-- `paper` - Paper plugin that streams player snapshots to Fabric clients
-
-## Installation
-
-### Client
-
-Install on the client:
-
-- `SeeU`
-- `Voxy`, `Distant Horizons` optional if you also want distant terrain
-
-Put the jar into the client's `mods` folder.
-
-### Server
-
-Choose one server-side option:
-
-- `Paper`: install `paper/build/libs/seeu-paper-0.1.0.jar` into `plugins`
-- `Fabric server`: install the same `SeeU` Fabric jar into the server `mods` folder
 
 ## How To Use
 
@@ -90,14 +64,12 @@ Paper:
 
 - `plugins/SeeU/config.yml`
 
-Legacy `voxyseeu-*` config names are migrated automatically to the new `seeu-*` names.
-
 ## Notes
 
 - `SeeU` is for players only. It does not render all entities at long range.
 - The client and server/plugin should be updated together. The current protocol version is `3`.
 - If you only install the client mod without a matching server sender, there will be no distant player data to render.
-- `Voxy` is optional. Without it, `SeeU` still works, but you only get distant player proxies, not distant terrain.
+- `Voxy` or `Distant Horizons` is optional. Without it, `SeeU` still works, but you only get distant player proxies, not distant terrain.
 
 ## Build
 
