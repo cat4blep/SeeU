@@ -52,7 +52,9 @@ public final class FabricFarPlayerService {
         subscribers.put(player.getUUID(), new ClientSettings(
                 packet.enabled(),
                 Math.max(0, packet.maximumRenderDistanceBlocks()),
-                Math.max(0, packet.minimumProxyDistanceBlocks())
+                Math.max(0, packet.minimumProxyDistanceBlocks()),
+                packet.shareSelf(),
+                Math.max(64, packet.shareMaximumDistanceBlocks())
         ));
     }
 
@@ -105,6 +107,16 @@ public final class FabricFarPlayerService {
             if (distanceSquared < minimumDistanceSquared || distanceSquared > maximumDistanceSquared) {
                 continue;
             }
+            ClientSettings targetSettings = subscribers.get(target.getUUID());
+            if (targetSettings != null) {
+                if (!targetSettings.shareSelf()) {
+                    continue;
+                }
+                double shareDistance = Math.min(config.maxRenderDistanceBlocks, targetSettings.shareMaximumDistanceBlocks());
+                if (distanceSquared > shareDistance * shareDistance) {
+                    continue;
+                }
+            }
 
             snapshots.add(new FarPlayerSnapshot(
                     target.getUUID(),
@@ -135,7 +147,9 @@ public final class FabricFarPlayerService {
     private record ClientSettings(
             boolean enabled,
             int maximumRenderDistanceBlocks,
-            int minimumProxyDistanceBlocks
+            int minimumProxyDistanceBlocks,
+            boolean shareSelf,
+            int shareMaximumDistanceBlocks
     ) {
     }
 

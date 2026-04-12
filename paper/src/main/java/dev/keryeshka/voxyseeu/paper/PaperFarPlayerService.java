@@ -48,14 +48,18 @@ final class PaperFarPlayerService {
         subscribers.put(player.getUniqueId(), new ClientSettings(
                 packet.enabled(),
                 Math.max(0, packet.maximumRenderDistanceBlocks()),
-                Math.max(0, packet.minimumProxyDistanceBlocks())
+                Math.max(0, packet.minimumProxyDistanceBlocks()),
+                packet.shareSelf(),
+                Math.max(64, packet.shareMaximumDistanceBlocks())
         ));
         plugin.getLogger().info(String.format(
-                "Received SeeU hello from %s: enabled=%s, maxDistance=%d, minDistance=%d",
+                "Received SeeU hello from %s: enabled=%s, maxDistance=%d, minDistance=%d, shareSelf=%s, shareMaxDistance=%d",
                 player.getName(),
                 packet.enabled(),
                 packet.maximumRenderDistanceBlocks(),
-                packet.minimumProxyDistanceBlocks()
+                packet.minimumProxyDistanceBlocks(),
+                packet.shareSelf(),
+                packet.shareMaximumDistanceBlocks()
         ));
     }
 
@@ -113,6 +117,16 @@ final class PaperFarPlayerService {
                 if (distanceSquared < minimumDistanceSquared || distanceSquared > maximumDistanceSquared) {
                     continue;
                 }
+                ClientSettings targetSettings = subscribers.get(target.getUniqueId());
+                if (targetSettings != null) {
+                    if (!targetSettings.shareSelf()) {
+                        continue;
+                    }
+                    double shareDistance = Math.min(configuredMaxDistance, targetSettings.shareMaximumDistanceBlocks());
+                    if (distanceSquared > shareDistance * shareDistance) {
+                        continue;
+                    }
+                }
 
                 Location location = target.getLocation();
                 EntityEquipment equipment = target.getEquipment();
@@ -151,7 +165,9 @@ final class PaperFarPlayerService {
     private record ClientSettings(
             boolean enabled,
             int maximumRenderDistanceBlocks,
-            int minimumProxyDistanceBlocks
+            int minimumProxyDistanceBlocks,
+            boolean shareSelf,
+            int shareMaximumDistanceBlocks
     ) {
     }
 

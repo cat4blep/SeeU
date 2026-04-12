@@ -17,6 +17,8 @@ public final class PacketCodec {
         writeVarInt(buf, packet.maximumRenderDistanceBlocks());
         writeVarInt(buf, packet.minimumProxyDistanceBlocks());
         buf.writeBoolean(packet.renderNameTags());
+        buf.writeBoolean(packet.shareSelf());
+        writeVarInt(buf, packet.shareMaximumDistanceBlocks());
     }
 
     public static ClientHelloPacket decodeClientHello(ByteBuf buf) {
@@ -25,7 +27,9 @@ public final class PacketCodec {
                 buf.readBoolean(),
                 readVarInt(buf),
                 readVarInt(buf),
-                buf.readBoolean()
+                buf.readBoolean(),
+                buf.readBoolean(),
+                readVarInt(buf)
         );
     }
 
