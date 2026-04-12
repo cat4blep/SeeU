@@ -2,6 +2,8 @@
 
 `SeeU` is a mod that lets you see players far beyond vanilla entity render distance.
 
+Discuss on Discord -> https://discord.gg/R5b6rdMNTQ
+
 ## What It Does
 
 - renders distant players outside vanilla entity range
