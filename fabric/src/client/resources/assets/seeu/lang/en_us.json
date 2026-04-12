@@ -1,0 +1,11 @@
+{
+  "category.seeu": "SeeU",
+  "key.seeu.open_config": "Open SeeU settings",
+  "screen.seeu.title": "SeeU Settings",
+  "screen.seeu.render_enabled": "Render distant players: %s",
+  "screen.seeu.render_distance": "Max render distance: %s blocks",
+  "screen.seeu.min_distance": "Proxy handoff distance: %s blocks",
+  "screen.seeu.name_tags": "Render name tags: %s",
+  "screen.seeu.share_self": "Share my proxy with others: %s",
+  "screen.seeu.share_distance": "Max distance others can see me: %s blocks"
+}

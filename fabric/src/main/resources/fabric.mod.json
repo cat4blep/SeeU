@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "seeu",
+  "version": "${version}",
+  "name": "SeeU",
+  "icon": "assets/seeu/icon.png",
+  "description": "Distant player proxies beyond vanilla entity render distance. Works with or without Voxy.",
+  "authors": [
+    "Keryesh4ka"
+  ],
+  "license": "MIT",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "dev.keryeshka.voxyseeu.fabric.VoxySeeUFabric"
+    ],
+    "client": [
+      "dev.keryeshka.voxyseeu.fabric.client.VoxySeeUClient"
+    ]
+  },
+  "depends": {
+    "fabricloader": ">=${loader_version}",
+    "minecraft": "~${minecraft_version}",
+    "fabric-api": "*"
+  }
+}

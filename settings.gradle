@@ -1,0 +1,18 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        maven { url = "https://maven.fabricmc.net/" }
+        maven { url = "https://repo.papermc.io/repository/maven-public/" }
+        mavenCentral()
+    }
+}
+
+plugins {
+    id "org.gradle.toolchains.foojay-resolver-convention" version "1.0.0"
+}
+
+rootProject.name = "SeeU-1.21.1"
+
+include("common")
+include("fabric")
+include("paper")
