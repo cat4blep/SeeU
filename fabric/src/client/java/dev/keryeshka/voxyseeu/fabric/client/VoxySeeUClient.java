@@ -40,10 +40,11 @@ public final class VoxySeeUClient implements ClientModInitializer {
 
         config = VoxySeeUClientConfig.load();
         LOGGER.info(
-                "Loaded SeeU client config: enabled={}, maxDistance={}, minDistance={}, nameTags={}, shareSelf={}, shareMaxDistance={}",
+                "Loaded SeeU client config: enabled={}, maxDistance={}, minDistance={}, animationDistance={}, nameTags={}, shareSelf={}, shareMaxDistance={}",
                 config.enabled,
                 config.maximumRenderDistanceBlocks,
                 config.minimumProxyDistanceBlocks,
+                config.maximumAnimationDistanceBlocks,
                 config.renderNameTags,
                 config.shareSelf,
                 config.shareMaximumDistanceBlocks

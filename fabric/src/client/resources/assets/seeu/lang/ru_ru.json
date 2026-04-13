@@ -5,6 +5,7 @@
   "screen.seeu.render_enabled": "Рендер дальних игроков: %s",
   "screen.seeu.render_distance": "Максимальная дальность рендера: %s блоков",
   "screen.seeu.min_distance": "Дистанция включения proxy: %s блоков",
+  "screen.seeu.walk_animation_distance": "Дистанция анимации ходьбы: %s блоков",
   "screen.seeu.name_tags": "Показывать никнеймы: %s",
   "screen.seeu.share_self": "Показывать мой proxy другим: %s",
   "screen.seeu.share_distance": "Максимальная дистанция видимости меня: %s блоков"

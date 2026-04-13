@@ -10,13 +10,14 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 public final class VoxySeeUClientConfig {
-    private static final int CURRENT_CONFIG_VERSION = 4;
+    private static final int CURRENT_CONFIG_VERSION = 5;
     private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
 
     public int configVersion = CURRENT_CONFIG_VERSION;
     public boolean enabled = true;
     public int maximumRenderDistanceBlocks = SharedDefaults.DEFAULT_MAX_RENDER_DISTANCE_BLOCKS;
     public int minimumProxyDistanceBlocks = SharedDefaults.DEFAULT_MIN_PROXY_DISTANCE_BLOCKS;
+    public int maximumAnimationDistanceBlocks = SharedDefaults.DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS;
     public boolean renderNameTags = SharedDefaults.DEFAULT_RENDER_NAME_TAGS;
     public boolean shareSelf = SharedDefaults.DEFAULT_SHARE_SELF;
     public int shareMaximumDistanceBlocks = SharedDefaults.DEFAULT_SHARE_MAX_DISTANCE_BLOCKS;
@@ -29,6 +30,14 @@ public final class VoxySeeUClientConfig {
         if (config.configVersion < CURRENT_CONFIG_VERSION
                 && config.minimumProxyDistanceBlocks == LEGACY_GAP_DISTANCE_BLOCKS) {
             config.minimumProxyDistanceBlocks = SharedDefaults.DEFAULT_MIN_PROXY_DISTANCE_BLOCKS;
+        }
+        if (config.configVersion < CURRENT_CONFIG_VERSION && config.maximumAnimationDistanceBlocks <= 0) {
+            config.maximumAnimationDistanceBlocks = Math.max(
+                    64,
+                    config.maximumRenderDistanceBlocks > 0
+                            ? config.maximumRenderDistanceBlocks
+                            : SharedDefaults.DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS
+            );
         }
         config.clamp();
         config.save();
@@ -45,6 +54,10 @@ public final class VoxySeeUClientConfig {
         this.configVersion = CURRENT_CONFIG_VERSION;
         this.maximumRenderDistanceBlocks = Math.max(64, maximumRenderDistanceBlocks);
         this.minimumProxyDistanceBlocks = Math.max(0, Math.min(minimumProxyDistanceBlocks, maximumRenderDistanceBlocks));
+        this.maximumAnimationDistanceBlocks = Math.max(
+                0,
+                Math.min(maximumAnimationDistanceBlocks, maximumRenderDistanceBlocks)
+        );
         this.shareMaximumDistanceBlocks = Math.max(64, shareMaximumDistanceBlocks);
     }
 
@@ -54,6 +67,7 @@ public final class VoxySeeUClientConfig {
         copy.enabled = this.enabled;
         copy.maximumRenderDistanceBlocks = this.maximumRenderDistanceBlocks;
         copy.minimumProxyDistanceBlocks = this.minimumProxyDistanceBlocks;
+        copy.maximumAnimationDistanceBlocks = this.maximumAnimationDistanceBlocks;
         copy.renderNameTags = this.renderNameTags;
         copy.shareSelf = this.shareSelf;
         copy.shareMaximumDistanceBlocks = this.shareMaximumDistanceBlocks;
@@ -65,6 +79,7 @@ public final class VoxySeeUClientConfig {
         this.enabled = other.enabled;
         this.maximumRenderDistanceBlocks = other.maximumRenderDistanceBlocks;
         this.minimumProxyDistanceBlocks = other.minimumProxyDistanceBlocks;
+        this.maximumAnimationDistanceBlocks = other.maximumAnimationDistanceBlocks;
         this.renderNameTags = other.renderNameTags;
         this.shareSelf = other.shareSelf;
         this.shareMaximumDistanceBlocks = other.shareMaximumDistanceBlocks;

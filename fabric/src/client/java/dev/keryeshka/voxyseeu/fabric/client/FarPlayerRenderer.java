@@ -36,6 +36,7 @@ import java.util.UUID;
 
 final class FarPlayerRenderer {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
+    private static final float WALK_ANIMATION_SCALE = 0.4F;
 
     private final FarPlayerTracker tracker;
     private final VoxySeeUClientConfig config;
@@ -110,7 +111,17 @@ final class FarPlayerRenderer {
                 return current;
             });
 
-            proxy.apply(tracked, position, config.renderNameTags, config.maximumRenderDistanceBlocks, animationTick, now);
+            boolean allowWalkAnimation = config.maximumAnimationDistanceBlocks > 0
+                    && distance <= config.maximumAnimationDistanceBlocks;
+            proxy.apply(
+                    tracked,
+                    position,
+                    config.renderNameTags,
+                    config.maximumRenderDistanceBlocks,
+                    allowWalkAnimation,
+                    animationTick,
+                    now
+            );
             active.add(tracked.uuid());
 
             if (tracked.hasVehicle()) {
@@ -231,6 +242,8 @@ final class FarPlayerRenderer {
     private static final class FarPlayerRenderProxy extends RemotePlayer {
         private final UUID trackedUuid;
         private int maximumRenderDistanceBlocks;
+        private Vec3 lastWalkAnimationPosition;
+        private int lastWalkAnimationTick = Integer.MIN_VALUE;
 
         private FarPlayerRenderProxy(ClientLevel level, UUID trackedUuid, String name) {
             super(level, new GameProfile(trackedUuid, name));
@@ -246,6 +259,7 @@ final class FarPlayerRenderer {
                 Vec3 position,
                 boolean renderNameTags,
                 int maximumRenderDistanceBlocks,
+                boolean allowWalkAnimation,
                 int animationTick,
                 long now
         ) {
@@ -282,6 +296,42 @@ final class FarPlayerRenderer {
             this.setItemSlot(EquipmentSlot.HEAD, createItemStack(tracked.head()));
             this.setCustomName(Component.literal(tracked.name()));
             this.setCustomNameVisible(renderNameTags);
+            updateWalkAnimation(position, tracked, allowWalkAnimation, animationTick);
+        }
+
+        private void updateWalkAnimation(
+                Vec3 position,
+                TrackedFarPlayer tracked,
+                boolean allowWalkAnimation,
+                int animationTick
+        ) {
+            if (lastWalkAnimationPosition == null) {
+                lastWalkAnimationPosition = position;
+                lastWalkAnimationTick = animationTick;
+                this.walkAnimation.setSpeed(0.0F);
+                this.walkAnimation.update(0.0F, WALK_ANIMATION_SCALE);
+                return;
+            }
+            if (animationTick == lastWalkAnimationTick) {
+                return;
+            }
+
+            lastWalkAnimationTick = animationTick;
+            if (!allowWalkAnimation || tracked.gliding() || tracked.swimming() || tracked.hasVehicle()) {
+                this.walkAnimation.setSpeed(0.0F);
+                this.walkAnimation.update(0.0F, WALK_ANIMATION_SCALE);
+                lastWalkAnimationPosition = position;
+                return;
+            }
+
+            float movement = (float) Mth.length(
+                    position.x - lastWalkAnimationPosition.x,
+                    0.0D,
+                    position.z - lastWalkAnimationPosition.z
+            );
+            float walkSpeed = Math.min(movement * 4.0F, 1.0F);
+            this.walkAnimation.update(walkSpeed, WALK_ANIMATION_SCALE);
+            lastWalkAnimationPosition = position;
         }
 
         @Override
