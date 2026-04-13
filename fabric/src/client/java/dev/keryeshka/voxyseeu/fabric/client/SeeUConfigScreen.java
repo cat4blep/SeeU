@@ -20,6 +20,7 @@ final class SeeUConfigScreen extends Screen {
 
     private DistanceSlider renderDistanceSlider;
     private DistanceSlider minDistanceSlider;
+    private DistanceSlider animationDistanceSlider;
     private DistanceSlider shareDistanceSlider;
     private Button renderToggleButton;
     private Button nameTagsButton;
@@ -58,6 +59,10 @@ final class SeeUConfigScreen extends Screen {
                         draft.minimumProxyDistanceBlocks = value;
                         minDistanceSlider.setExternalValue(value);
                     }
+                    if (draft.maximumAnimationDistanceBlocks > value) {
+                        draft.maximumAnimationDistanceBlocks = value;
+                        animationDistanceSlider.setExternalValue(value);
+                    }
                 }
         ));
 
@@ -72,19 +77,30 @@ final class SeeUConfigScreen extends Screen {
                 value -> draft.minimumProxyDistanceBlocks = Math.min(value, draft.maximumRenderDistanceBlocks)
         ));
 
+        animationDistanceSlider = addRenderableWidget(new DistanceSlider(
+                x,
+                y + rowHeight * 3,
+                contentWidth,
+                "screen.seeu.walk_animation_distance",
+                0,
+                SharedDefaults.DEFAULT_MAX_RENDER_DISTANCE_BLOCKS,
+                draft.maximumAnimationDistanceBlocks,
+                value -> draft.maximumAnimationDistanceBlocks = Math.min(value, draft.maximumRenderDistanceBlocks)
+        ));
+
         nameTagsButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             draft.renderNameTags = !draft.renderNameTags;
             refreshButtons();
-        }).bounds(x, y + rowHeight * 3, contentWidth, 20).build());
+        }).bounds(x, y + rowHeight * 4, contentWidth, 20).build());
 
         shareSelfButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
             draft.shareSelf = !draft.shareSelf;
             refreshButtons();
-        }).bounds(x, y + rowHeight * 4, contentWidth, 20).build());
+        }).bounds(x, y + rowHeight * 5, contentWidth, 20).build());
 
         shareDistanceSlider = addRenderableWidget(new DistanceSlider(
                 x,
-                y + rowHeight * 5,
+                y + rowHeight * 6,
                 contentWidth,
                 "screen.seeu.share_distance",
                 64,
@@ -93,7 +109,7 @@ final class SeeUConfigScreen extends Screen {
                 value -> draft.shareMaximumDistanceBlocks = value
         ));
 
-        int buttonY = y + rowHeight * 7;
+        int buttonY = y + rowHeight * 8;
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
             draft.clamp();
             onSave.accept(draft.copy());
@@ -127,12 +143,18 @@ final class SeeUConfigScreen extends Screen {
         shareSelfButton.setMessage(toggleLabel("screen.seeu.share_self", draft.shareSelf));
         renderDistanceSlider.active = draft.enabled;
         minDistanceSlider.active = draft.enabled;
+        animationDistanceSlider.active = draft.enabled;
         nameTagsButton.active = draft.enabled;
         shareDistanceSlider.active = draft.shareSelf;
         minDistanceSlider.setMaximum(draft.maximumRenderDistanceBlocks);
+        animationDistanceSlider.setMaximum(draft.maximumRenderDistanceBlocks);
         if (draft.minimumProxyDistanceBlocks > draft.maximumRenderDistanceBlocks) {
             draft.minimumProxyDistanceBlocks = draft.maximumRenderDistanceBlocks;
             minDistanceSlider.setExternalValue(draft.minimumProxyDistanceBlocks);
+        }
+        if (draft.maximumAnimationDistanceBlocks > draft.maximumRenderDistanceBlocks) {
+            draft.maximumAnimationDistanceBlocks = draft.maximumRenderDistanceBlocks;
+            animationDistanceSlider.setExternalValue(draft.maximumAnimationDistanceBlocks);
         }
     }
 
