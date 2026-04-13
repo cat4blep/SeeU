@@ -1,10 +1,9 @@
 package dev.keryeshka.voxyseeu.fabric.client;
 
 import com.mojang.authlib.GameProfile;
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
 import dev.keryeshka.voxyseeu.fabric.client.config.VoxySeeUClientConfig;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderContext;
+import net.fabricmc.fabric.api.client.rendering.v1.world.WorldExtractionContext;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -15,9 +14,10 @@ import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Pose;
@@ -58,26 +58,23 @@ final class FarPlayerRenderer {
         loggedFirstSubmission = false;
     }
 
-    void render(WorldRenderContext context) {
+    void render(WorldExtractionContext context) {
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         LocalPlayer localPlayer = minecraft.player;
-        PoseStack poseStack = context.matrixStack();
-        var consumers = context.consumers();
-        if (level == null || localPlayer == null || poseStack == null || consumers == null) {
+        if (level == null || localPlayer == null) {
             clear();
             return;
         }
 
-        String currentDimension = level.dimension().location().toString();
+        String currentDimension = level.dimension().identifier().toString();
         if (!currentDimension.equals(tracker.dimensionKey())) {
             clear();
             return;
         }
 
-        Vec3 cameraPosition = context.camera().getPosition();
         EntityRenderDispatcher dispatcher = minecraft.getEntityRenderDispatcher();
-        float partialTick = 0.0F;
+        float partialTick = context.camera().getPartialTickTime();
         int animationTick = localPlayer.tickCount;
         long now = System.nanoTime();
 
@@ -139,20 +136,7 @@ final class FarPlayerRenderer {
                         proxy.startRiding(vehicle);
                     }
                     if (submittedVehicles.add(tracked.vehicleUuid())) {
-                        Vec3 vehiclePosition = tracked.renderVehiclePosition(now);
-                        poseStack.pushPose();
-                        dispatcher.render(
-                                vehicle,
-                                vehiclePosition.x - cameraPosition.x,
-                                vehiclePosition.y - cameraPosition.y,
-                                vehiclePosition.z - cameraPosition.z,
-                                tracked.renderVehicleYaw(now),
-                                partialTick,
-                                poseStack,
-                                consumers,
-                                LightTexture.FULL_BRIGHT
-                        );
-                        poseStack.popPose();
+                        context.worldState().entityRenderStates.add(dispatcher.extractEntity(vehicle, partialTick));
                     }
                 } else {
                     proxy.stopRiding();
@@ -161,19 +145,7 @@ final class FarPlayerRenderer {
                 proxy.stopRiding();
             }
 
-            poseStack.pushPose();
-            dispatcher.render(
-                    proxy,
-                    position.x - cameraPosition.x,
-                    position.y - cameraPosition.y,
-                    position.z - cameraPosition.z,
-                    tracked.renderBodyYaw(now),
-                    partialTick,
-                    poseStack,
-                    consumers,
-                    LightTexture.FULL_BRIGHT
-            );
-            poseStack.popPose();
+            context.worldState().entityRenderStates.add(dispatcher.extractEntity(proxy, partialTick));
 
             if (!loggedFirstSubmission) {
                 LOGGER.info(
@@ -191,11 +163,11 @@ final class FarPlayerRenderer {
 
     private static Entity createVehicleProxy(ClientLevel level, String entityTypeId) {
         try {
-            EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityTypeId));
+            EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(entityTypeId));
             if (entityType == null) {
                 return null;
             }
-            Entity entity = entityType.create(level);
+            Entity entity = entityType.create(level, EntitySpawnReason.LOAD);
             if (entity == null) {
                 return null;
             }
@@ -219,7 +191,7 @@ final class FarPlayerRenderer {
         vehicle.xOld = position.x;
         vehicle.yOld = position.y;
         vehicle.zOld = position.z;
-        vehicle.moveTo(position.x, position.y, position.z, yaw, pitch);
+        vehicle.snapTo(position.x, position.y, position.z, yaw, pitch);
         vehicle.setYRot(yaw);
         vehicle.yRotO = yaw;
         vehicle.setXRot(pitch);
@@ -276,7 +248,7 @@ final class FarPlayerRenderer {
             this.xOld = position.x;
             this.yOld = position.y;
             this.zOld = position.z;
-            this.moveTo(position.x, position.y, position.z, bodyYaw, pitch);
+            this.snapTo(position.x, position.y, position.z, bodyYaw, pitch);
             this.setYRot(bodyYaw);
             this.yRotO = bodyYaw;
             this.setXRot(pitch);
@@ -309,7 +281,7 @@ final class FarPlayerRenderer {
                 lastWalkAnimationPosition = position;
                 lastWalkAnimationTick = animationTick;
                 this.walkAnimation.setSpeed(0.0F);
-                this.walkAnimation.update(0.0F, WALK_ANIMATION_SCALE);
+                this.walkAnimation.update(0.0F, 1.0F, WALK_ANIMATION_SCALE);
                 return;
             }
             if (animationTick == lastWalkAnimationTick) {
@@ -319,7 +291,7 @@ final class FarPlayerRenderer {
             lastWalkAnimationTick = animationTick;
             if (!allowWalkAnimation || tracked.gliding() || tracked.swimming() || tracked.hasVehicle()) {
                 this.walkAnimation.setSpeed(0.0F);
-                this.walkAnimation.update(0.0F, WALK_ANIMATION_SCALE);
+                this.walkAnimation.update(0.0F, 1.0F, WALK_ANIMATION_SCALE);
                 lastWalkAnimationPosition = position;
                 return;
             }
@@ -330,7 +302,7 @@ final class FarPlayerRenderer {
                     position.z - lastWalkAnimationPosition.z
             );
             float walkSpeed = Math.min(movement * 4.0F, 1.0F);
-            this.walkAnimation.update(walkSpeed, WALK_ANIMATION_SCALE);
+            this.walkAnimation.update(walkSpeed, 1.0F, WALK_ANIMATION_SCALE);
             lastWalkAnimationPosition = position;
         }
 
@@ -356,7 +328,7 @@ final class FarPlayerRenderer {
             return ItemStack.EMPTY;
         }
         try {
-            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(snapshot.itemId()));
+            Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(snapshot.itemId()));
             if (item == null || item == Items.AIR) {
                 return ItemStack.EMPTY;
             }

@@ -3,7 +3,7 @@ plugins {
 }
 
 base {
-    archivesName = "seeu-common-1.21.1"
+    archivesName = "seeu-common-1.21.11"
 }
 
 java {

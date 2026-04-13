@@ -12,7 +12,7 @@ apply plugin: "fabric-loom"
 apply plugin: "maven-publish"
 
 base {
-    archivesName = "seeu-fabric-1.21.1"
+    archivesName = "seeu-fabric-1.21.11"
 }
 
 loom {
@@ -51,8 +51,11 @@ dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
-    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
-    modClientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    modImplementation fabricApi.module("fabric-lifecycle-events-v1", project.fabric_api_version)
+    modImplementation fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)
+    modClientImplementation fabricApi.module("fabric-key-binding-api-v1", project.fabric_api_version)
+    modClientImplementation fabricApi.module("fabric-networking-api-v1", project.fabric_api_version)
+    modClientImplementation fabricApi.module("fabric-rendering-v1", project.fabric_api_version)
 
     implementation project(":common")
     clientImplementation project(":common")

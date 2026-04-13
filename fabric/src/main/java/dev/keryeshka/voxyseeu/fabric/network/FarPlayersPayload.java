@@ -6,11 +6,11 @@ import dev.keryeshka.voxyseeu.common.protocol.ProtocolConstants;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 public record FarPlayersPayload(FarPlayersPacket packet) implements CustomPacketPayload {
     public static final Type<FarPlayersPayload> TYPE =
-            new Type<>(ResourceLocation.parse(ProtocolConstants.PLAYERS_CHANNEL));
+            new Type<>(Identifier.parse(ProtocolConstants.PLAYERS_CHANNEL));
 
     public static final StreamCodec<RegistryFriendlyByteBuf, FarPlayersPayload> STREAM_CODEC =
             new StreamCodec<>() {

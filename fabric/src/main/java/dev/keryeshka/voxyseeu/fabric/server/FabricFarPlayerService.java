@@ -120,7 +120,7 @@ public final class FabricFarPlayerService {
 
             snapshots.add(new FarPlayerSnapshot(
                     target.getUUID(),
-                    target.getGameProfile().getName(),
+                    target.getGameProfile().name(),
                     target.getX(),
                     target.getY(),
                     target.getZ(),
@@ -140,7 +140,7 @@ public final class FabricFarPlayerService {
             ));
         }
 
-        FarPlayersPacket packet = new FarPlayersPacket(viewer.level().dimension().location().toString(), List.copyOf(snapshots));
+        FarPlayersPacket packet = new FarPlayersPacket(viewer.level().dimension().identifier().toString(), List.copyOf(snapshots));
         ServerPlayNetworking.send(viewer, new FarPlayersPayload(packet));
     }
 
