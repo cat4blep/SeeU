@@ -1,6 +1,7 @@
 plugins {
     id "java-library"
     id "maven-publish"
+    id "com.gradleup.shadow" version "9.3.1"
 }
 
 base {
@@ -21,6 +22,7 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.named("jar") {
+    archiveClassifier = "dev"
     from(project(":common").sourceSets.main.output)
 }
 
@@ -28,8 +30,25 @@ tasks.named("sourcesJar") {
     from(project(":common").sourceSets.main.allSource)
 }
 
+tasks.named("shadowJar") {
+    archiveClassifier = ""
+    from(project(":common").sourceSets.main.output)
+    configurations = [project.configurations.runtimeClasspath]
+
+    dependencies {
+        exclude { dependency -> dependency.moduleGroup != "org.bstats" }
+    }
+
+    relocate("org.bstats", "${project.group}.paper.libs.bstats")
+}
+
+tasks.named("assemble") {
+    dependsOn(tasks.named("shadowJar"))
+}
+
 dependencies {
     implementation project(":common")
+    implementation "org.bstats:bstats-bukkit:3.2.1"
     compileOnly "io.papermc.paper:paper-api:${project.paper_api_version}"
     compileOnly "io.netty:netty-buffer:${project.netty_version}"
 }
@@ -46,7 +65,8 @@ publishing {
     publications {
         create("mavenJava", MavenPublication) {
             artifactId = base.archivesName.get()
-            from components.java
+            artifact tasks.named("shadowJar")
+            artifact tasks.named("sourcesJar")
         }
     }
 }

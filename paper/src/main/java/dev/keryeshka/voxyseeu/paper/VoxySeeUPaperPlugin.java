@@ -2,6 +2,7 @@ package dev.keryeshka.voxyseeu.paper;
 
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
 import dev.keryeshka.voxyseeu.common.protocol.ProtocolConstants;
+import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -16,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessageListener, Listener {
+    private static final int BSTATS_PLUGIN_ID = 30780;
     private static final int CURRENT_CONFIG_VERSION = 3;
     private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
 
@@ -27,6 +29,7 @@ public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessa
         saveDefaultConfig();
         migrateLegacyConfig();
 
+        new Metrics(this, BSTATS_PLUGIN_ID);
         this.service = new PaperFarPlayerService(this);
 
         Bukkit.getMessenger().registerIncomingPluginChannel(this, ProtocolConstants.HELLO_CHANNEL, this);
