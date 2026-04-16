@@ -52,4 +52,5 @@ jobs:
             fabric/build/libs/*.jar
             paper/build/libs/*.jar
             !fabric/build/libs/*-sources.jar
+            !paper/build/libs/*-dev.jar
             !paper/build/libs/*-sources.jar
