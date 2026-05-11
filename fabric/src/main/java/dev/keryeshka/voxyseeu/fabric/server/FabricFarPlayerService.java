@@ -96,6 +96,9 @@ public final class FabricFarPlayerService {
             if (target.level() != viewer.level()) {
                 continue;
             }
+            if (isWaitingToRespawn(target)) {
+                continue;
+            }
             if (!config.sendSpectators && target.isSpectator()) {
                 continue;
             }
@@ -151,6 +154,10 @@ public final class FabricFarPlayerService {
             boolean shareSelf,
             int shareMaximumDistanceBlocks
     ) {
+    }
+
+    private static boolean isWaitingToRespawn(ServerPlayer player) {
+        return !player.isAlive() || player.isRemoved();
     }
 
     private static FarItemSnapshot toItemSnapshot(ItemStack stack) {

@@ -106,6 +106,9 @@ final class PaperFarPlayerService {
                 if (!target.getWorld().equals(viewer.getWorld())) {
                     continue;
                 }
+                if (isWaitingToRespawn(target)) {
+                    continue;
+                }
                 if (!sendSpectators && target.getGameMode() == GameMode.SPECTATOR) {
                     continue;
                 }
@@ -169,6 +172,10 @@ final class PaperFarPlayerService {
             boolean shareSelf,
             int shareMaximumDistanceBlocks
     ) {
+    }
+
+    private static boolean isWaitingToRespawn(Player player) {
+        return player.isDead() || player.getHealth() <= 0.0D || !player.isValid();
     }
 
     private static FarItemSnapshot toItemSnapshot(ItemStack stack) {
