@@ -50,7 +50,9 @@ jobs:
           if-no-files-found: error
           path: |
             fabric/build/libs/*.jar
+            neoforge/build/libs/*.jar
             paper/build/libs/*.jar
             !fabric/build/libs/*-sources.jar
+            !neoforge/build/libs/*-sources.jar
             !paper/build/libs/*-dev.jar
             !paper/build/libs/*-sources.jar

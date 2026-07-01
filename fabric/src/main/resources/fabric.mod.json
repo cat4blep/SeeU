@@ -24,8 +24,8 @@
     "fabric-api": "*"
   },
   "contact": {
-    "sources": "https://github.com/Keryesh4ka/SeeU",
-    "issues": "https://github.com/Keryesh4ka/SeeU/issues"
+    "sources": "https://github.com/cat4blep/SeeU",
+    "issues": "https://github.com/cat4blep/SeeU/issues"
   },
   "suggests": {
     "modmenu": "*"
@@ -33,7 +33,7 @@
   "custom": {
     "modmenu": {
       "links": {
-        "modmenu.issues": "https://github.com/Keryesh4ka/SeeU/issues"
+        "modmenu.issues": "https://github.com/cat4blep/SeeU/issues"
       }
     }
   }
