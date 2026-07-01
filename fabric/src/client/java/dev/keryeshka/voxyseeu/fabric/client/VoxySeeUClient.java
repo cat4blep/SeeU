@@ -78,7 +78,7 @@ public final class VoxySeeUClient implements ClientModInitializer {
         LevelRenderEvents.COLLECT_SUBMITS.register(renderer::render);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (OPEN_CONFIG_KEY.consumeClick()) {
-                client.setScreen(new SeeUConfigScreen(client.screen, config.copy(), VoxySeeUClient::applyConfig));
+                client.gui.setScreen(new SeeUConfigScreen(client.gui.screen(), config.copy(), VoxySeeUClient::applyConfig));
             }
         });
     }

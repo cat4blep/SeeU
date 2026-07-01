@@ -21,7 +21,7 @@ Each client renders those snapshots as remote player proxies only when the real 
 
 ## Supported Setup
 
-- Minecraft `26.1.2`
+- Minecraft `26.2`
 - Java `25`
 - Fabric client or NeoForge client
 - `Voxy` optional on the client

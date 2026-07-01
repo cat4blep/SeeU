@@ -82,7 +82,7 @@ public final class VoxySeeUNeoForgeClient {
         ensureLoaded();
         Minecraft minecraft = Minecraft.getInstance();
         while (OPEN_CONFIG_KEY.consumeClick()) {
-            minecraft.setScreen(new SeeUConfigScreen(minecraft.screen, config.copy(), VoxySeeUNeoForgeClient::applyConfig));
+            minecraft.gui.setScreen(new SeeUConfigScreen(minecraft.gui.screen(), config.copy(), VoxySeeUNeoForgeClient::applyConfig));
         }
     }
 
