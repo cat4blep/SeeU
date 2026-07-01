@@ -12,6 +12,8 @@ import hashlib
 import json
 import mimetypes
 import os
+import re
+import shutil
 import subprocess
 import sys
 import urllib.error
@@ -97,6 +99,14 @@ def parse_args() -> argparse.Namespace:
         "--build",
         action="store_true",
         help="Run './gradlew clean build' before publishing.",
+    )
+    parser.add_argument(
+        "--java-home",
+        default=os.environ.get("MODRINTH_JAVA_HOME"),
+        help=(
+            "JDK home used for --build. Defaults to MODRINTH_JAVA_HOME, "
+            "then JAVA<version>_HOME/JDK<version>_HOME/JAVA_HOME, then common install locations."
+        ),
     )
     parser.add_argument(
         "--dry-run",
@@ -191,11 +201,138 @@ def read_gradle_properties() -> dict[str, str]:
     return props
 
 
-def run_build() -> None:
+def run_build(args: argparse.Namespace, props: dict[str, str]) -> None:
     gradlew = ROOT / ("gradlew.bat" if os.name == "nt" else "gradlew")
     command = [str(gradlew), "clean", "build"]
+    env = build_environment(args, props)
     print("+ " + " ".join(command), flush=True)
-    subprocess.run(command, cwd=ROOT, check=True)
+    subprocess.run(command, cwd=ROOT, check=True, env=env)
+
+
+def build_environment(args: argparse.Namespace, props: dict[str, str]) -> dict[str, str]:
+    env = os.environ.copy()
+    required = parse_required_java_version(props)
+    if required <= 0:
+        return env
+
+    current = java_feature_version(None, env)
+    if current is not None and current >= required:
+        return env
+
+    java_home = select_java_home(required, args.java_home, env)
+    if java_home is None:
+        current_text = f"current Java is {current}" if current is not None else "java is not on PATH"
+        raise ModrinthError(
+            f"Gradle needs Java {required}+ from gradle.properties, but {current_text}. "
+            f"Install JDK {required}+ or pass --java-home/ set MODRINTH_JAVA_HOME."
+        )
+
+    bin_dir = java_home / "bin"
+    path_key = "Path" if os.name == "nt" else "PATH"
+    env["JAVA_HOME"] = str(java_home)
+    env[path_key] = str(bin_dir) + os.pathsep + env.get(path_key, "")
+    selected = java_feature_version(java_home, env)
+    selected_text = str(selected) if selected is not None else "unknown"
+    print(f"Using JAVA_HOME={java_home} for Gradle (Java {selected_text}).")
+    return env
+
+
+def parse_required_java_version(props: dict[str, str]) -> int:
+    raw = props.get("java_version", "").strip()
+    if not raw:
+        return 0
+    try:
+        return int(raw)
+    except ValueError as error:
+        raise ModrinthError(f"Invalid java_version in gradle.properties: {raw}") from error
+
+
+def java_feature_version(java_home: Path | None, env: dict[str, str]) -> int | None:
+    java_executable = java_binary(java_home)
+    try:
+        completed = subprocess.run(
+            [str(java_executable), "-version"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            env=env,
+            check=False,
+        )
+    except OSError:
+        return None
+    output = completed.stdout + completed.stderr
+    match = re.search(r'version "(?P<major>\d+)(?:\.(?P<minor>\d+))?', output)
+    if not match:
+        return None
+    major = int(match.group("major"))
+    minor = match.group("minor")
+    if major == 1 and minor is not None:
+        return int(minor)
+    return major
+
+
+def java_binary(java_home: Path | None) -> Path | str:
+    executable = "java.exe" if os.name == "nt" else "java"
+    if java_home is None:
+        return executable
+    return java_home / "bin" / executable
+
+
+def select_java_home(required: int, override: str | None, env: dict[str, str]) -> Path | None:
+    candidates = java_home_candidates(required, override, env)
+    usable: list[tuple[int, Path]] = []
+    for candidate in candidates:
+        version = java_feature_version(candidate, env)
+        if version is not None and version >= required:
+            usable.append((version, candidate))
+    if not usable:
+        return None
+    usable.sort(key=lambda item: (item[0] != required, item[0]))
+    return usable[0][1]
+
+
+def java_home_candidates(required: int, override: str | None, env: dict[str, str]) -> list[Path]:
+    raw_candidates: list[str] = []
+    if override:
+        raw_candidates.append(override)
+    for name in (f"JAVA{required}_HOME", f"JDK{required}_HOME", "JAVA_HOME"):
+        value = env.get(name)
+        if value:
+            raw_candidates.append(value)
+
+    if os.name == "nt":
+        for root in (
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Java",
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Eclipse Adoptium",
+            Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Microsoft",
+        ):
+            if root.exists():
+                raw_candidates.extend(str(path) for path in root.iterdir() if path.is_dir())
+    else:
+        for root in (Path("/usr/lib/jvm"), Path("/opt/homebrew/opt"), Path("/Library/Java/JavaVirtualMachines")):
+            if not root.exists():
+                continue
+            for path in root.iterdir():
+                if not path.is_dir():
+                    continue
+                home = path / "Contents" / "Home"
+                raw_candidates.append(str(home if home.exists() else path))
+
+    system_java = shutil.which("java")
+    if system_java:
+        java_path = Path(system_java).resolve()
+        if java_path.parent.name == "bin":
+            raw_candidates.append(str(java_path.parent.parent))
+
+    seen: set[Path] = set()
+    candidates: list[Path] = []
+    for raw in raw_candidates:
+        path = Path(raw).expanduser()
+        if not path.exists() or path in seen:
+            continue
+        seen.add(path)
+        candidates.append(path)
+    return candidates
 
 
 def sha512(path: Path) -> str:
@@ -274,6 +411,30 @@ def run_git(args: list[str], fallback: str) -> str:
     return value if value else fallback
 
 
+def resolve_project_reference(args: argparse.Namespace) -> None:
+    encoded_project = urllib.parse.quote(args.project_id)
+    url = f"{args.api_base.rstrip('/')}/project/{encoded_project}"
+    status, payload = request_json(
+        "GET",
+        url,
+        modrinth_headers(args, authenticated=bool(args.token)),
+        ok_statuses={200},
+    )
+    if status != 200 or not isinstance(payload, dict):
+        raise ModrinthError(f"Could not resolve Modrinth project {args.project_id}.")
+
+    project_id = payload.get("id")
+    slug = payload.get("slug")
+    title = payload.get("title")
+    if not project_id:
+        raise ModrinthError(f"Modrinth project response for {args.project_id} did not include an id.")
+
+    if args.project_id != project_id:
+        label = title or slug or args.project_id
+        print(f"Resolved Modrinth project {args.project_id} -> {project_id} ({label}).")
+        args.project_id = project_id
+
+
 def dependency_list(args: argparse.Namespace, loader: str) -> list[dict[str, str]]:
     dependencies: list[dict[str, str]] = []
     if loader == "fabric" and args.fabric_api_project:
@@ -332,6 +493,7 @@ def format_metadata(
         "project_id": args.project_id,
         "file_parts": ["file"],
         "primary_file": "file",
+        "environment": artifact.environment,
     }
 
 
@@ -358,6 +520,15 @@ def request_json(
             payload = raw.decode("utf-8", errors="replace")
         if error.code in ok_statuses:
             return error.code, payload
+        if error.code == 401:
+            detail = payload.get("description", payload) if isinstance(payload, dict) else payload
+            raise ModrinthError(
+                "Modrinth rejected authorization (HTTP 401): "
+                f"{detail}\n"
+                "Check that MODRINTH_TOKEN is a Modrinth personal access token, "
+                "has the VERSION_CREATE scope, and belongs to a user with permission "
+                "to upload versions to MODRINTH_PROJECT_ID."
+            ) from error
         raise ModrinthError(f"{method} {url} failed with HTTP {error.code}: {payload}") from error
 
 
@@ -464,8 +635,9 @@ def main() -> int:
             if key not in props:
                 raise ModrinthError(f"Missing {key} in gradle.properties.")
 
+        resolve_project_reference(args)
         if args.build:
-            run_build()
+            run_build(args, props)
 
         changelog = read_changelog(args, props)
         artifacts = discover_artifacts(args.only)

@@ -2,6 +2,8 @@
 
 Use `scripts/publish_modrinth.py` from the repository root. The script publishes the current branch build output to Modrinth through the v2 API.
 
+If your shell is already inside `scripts/`, run `python .\publish_modrinth.py ...` instead of `python scripts/publish_modrinth.py ...`.
+
 ## Required environment
 
 ```powershell
@@ -9,7 +11,13 @@ $env:MODRINTH_TOKEN = "your-token"
 $env:MODRINTH_PROJECT_ID = "your-project-id-or-slug"
 ```
 
+For the public SeeU Modrinth project, the slug is `seeu` and the resolved project id is `coyNPDey`. The script accepts either value and sends the resolved id to Modrinth when creating versions.
+
 The token needs permission to create versions. If the project or versions are private/draft, also give the token read access so the duplicate checks can see existing versions.
+
+Modrinth returns HTTP 401 when the token is missing the required `VERSION_CREATE` scope or when the token's user cannot upload versions to the selected project. Confirm that `MODRINTH_PROJECT_ID` is the actual project slug/id for SeeU and that the token belongs to an owner or team member with upload permissions.
+
+If only the NeoForge upload fails after Fabric/Paper work, add the `neoforge` loader to the SeeU project settings on Modrinth before retrying.
 
 ## Publish current branch
 
@@ -45,7 +53,11 @@ git switch main
 python scripts/publish_modrinth.py --build --status draft
 ```
 
-Use Java 21 for `1.21.x` branches and Java 25 for `26.x` branches.
+The script reads `java_version` from `gradle.properties` and tries to select a matching installed JDK for `--build`. If auto-detection fails, pass one explicitly:
+
+```powershell
+python scripts/publish_modrinth.py --build --java-home "C:\Program Files\Java\jdk-25"
+```
 
 ## Version numbers
 
