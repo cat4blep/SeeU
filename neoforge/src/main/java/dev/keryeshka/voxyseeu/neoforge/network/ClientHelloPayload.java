@@ -1,4 +1,4 @@
-package dev.keryeshka.voxyseeu.fabric.network;
+package dev.keryeshka.voxyseeu.neoforge.network;
 
 import dev.keryeshka.voxyseeu.common.protocol.ClientHelloPacket;
 import dev.keryeshka.voxyseeu.common.protocol.PacketCodec;

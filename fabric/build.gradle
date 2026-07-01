@@ -12,7 +12,7 @@ apply plugin: "fabric-loom"
 apply plugin: "maven-publish"
 
 base {
-    archivesName = "seeu-fabric-1.21.1"
+    archivesName = "seeu-fabric-1.21.11"
 }
 
 loom {

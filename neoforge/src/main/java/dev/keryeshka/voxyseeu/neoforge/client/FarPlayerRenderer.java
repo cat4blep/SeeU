@@ -1,16 +1,16 @@
-package dev.keryeshka.voxyseeu.fabric.client;
+package dev.keryeshka.voxyseeu.neoforge.client;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
-import dev.keryeshka.voxyseeu.fabric.client.config.VoxySeeUClientConfig;
-import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
+import dev.keryeshka.voxyseeu.neoforge.client.config.VoxySeeUClientConfig;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.network.chat.Component;
@@ -25,6 +25,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,12 +59,12 @@ final class FarPlayerRenderer {
         loggedFirstSubmission = false;
     }
 
-    void render(WorldRenderContext context) {
+    void render(RenderLevelStageEvent context, SubmitNodeCollector submitNodeCollector) {
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         LocalPlayer localPlayer = minecraft.player;
-        PoseStack poseStack = context.matrices();
-        if (level == null || localPlayer == null || poseStack == null || context.commandQueue() == null) {
+        PoseStack poseStack = context.getPoseStack();
+        if (level == null || localPlayer == null || poseStack == null || submitNodeCollector == null) {
             clear();
             return;
         }
@@ -142,12 +143,12 @@ final class FarPlayerRenderer {
                         Vec3 vehiclePosition = tracked.renderVehiclePosition(now);
                         dispatcher.submit(
                                 vehicleRenderState,
-                                context.worldState().cameraRenderState,
+                                context.getLevelRenderState().cameraRenderState,
                                 vehiclePosition.x - cameraPosition.x,
                                 vehiclePosition.y - cameraPosition.y,
                                 vehiclePosition.z - cameraPosition.z,
                                 poseStack,
-                                context.commandQueue()
+                                submitNodeCollector
                         );
                     }
                 } else {
@@ -160,12 +161,12 @@ final class FarPlayerRenderer {
             var renderState = dispatcher.extractEntity(proxy, partialTick);
             dispatcher.submit(
                     renderState,
-                    context.worldState().cameraRenderState,
+                    context.getLevelRenderState().cameraRenderState,
                     position.x - cameraPosition.x,
                     position.y - cameraPosition.y,
                     position.z - cameraPosition.z,
                     poseStack,
-                    context.commandQueue()
+                    submitNodeCollector
             );
 
             if (!loggedFirstSubmission) {

@@ -10,7 +10,7 @@ Discuss on Discord -> https://discord.gg/R5b6rdMNTQ
 - keeps player pose, yaw, pitch and name
 - renders held items and armor on distant player proxies
 - renders ridden entities too, so a player in a boat appears in a boat instead of standing in air
-- works with a `Fabric` client and either a `Paper` server plugin or a `Fabric` server sender
+- works with a `Fabric` or `NeoForge` client and a `Paper`, `Fabric`, or `NeoForge` server sender
 - lets each player control whether other people can see their distant proxy and up to what distance
 
 ## How It Works
@@ -21,16 +21,16 @@ Each client renders those snapshots as remote player proxies only when the real 
 
 ## Supported Setup
 
-- Minecraft `26.1.2`
-- Java `25`
-- Fabric client
+- Minecraft `1.21.11`
+- Java `21`
+- Fabric client or NeoForge client
 - `Voxy` optional on the client
-- Server side: either `Paper` plugin or `Fabric` server with the same sender built into the mod
+- Server side: `Paper` plugin, Fabric server mod, or NeoForge server mod
 
 ## How To Use
 
-1. Install `SeeU` on the client.
-2. Install either the `Paper` plugin or the `Fabric` server sender.
+1. Install the matching `SeeU` Fabric or NeoForge jar on the client.
+2. Install either the `Paper` plugin, Fabric server jar, or NeoForge server jar.
 3. Start the server and client with matching current jars.
 4. Join the server.
 5. Fly or move far enough for vanilla player rendering to end.
@@ -62,6 +62,11 @@ Fabric server:
 
 - `config/seeu-server.json`
 
+NeoForge client/server:
+
+- `config/seeu-client.json`
+- `config/seeu-server.json`
+
 Paper:
 
 - `plugins/SeeU/config.yml`
@@ -78,3 +83,9 @@ Paper:
 ```powershell
 ./gradlew build
 ```
+
+Built jars are written to:
+
+- `fabric/build/libs/seeu-fabric-1.21.11-<version>.jar`
+- `neoforge/build/libs/seeu-neoforge-1.21.11-<version>.jar`
+- `paper/build/libs/seeu-paper-1.21.11-<version>.jar`

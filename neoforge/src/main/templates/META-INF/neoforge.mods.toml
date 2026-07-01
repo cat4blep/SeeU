@@ -1,0 +1,27 @@
+license="${mod_license}"
+issueTrackerURL="https://github.com/cat4blep/SeeU/issues"
+
+[[mods]]
+modId="${mod_id}"
+version="${mod_version}"
+displayName="${mod_name}"
+displayURL="https://github.com/cat4blep/SeeU"
+logoFile="assets/seeu/icon.png"
+authors="Keryesh4ka"
+description='''
+Makes distant players visible far beyond vanilla entity tracking.
+'''
+
+[[dependencies.${mod_id}]]
+    modId="neoforge"
+    type="required"
+    versionRange="${neo_version_range}"
+    ordering="NONE"
+    side="BOTH"
+
+[[dependencies.${mod_id}]]
+    modId="minecraft"
+    type="required"
+    versionRange="${minecraft_version_range}"
+    ordering="NONE"
+    side="BOTH"

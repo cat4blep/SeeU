@@ -1,0 +1,88 @@
+plugins {
+    id "java-library"
+    id "maven-publish"
+    id "net.neoforged.moddev" version "2.0.141"
+}
+
+base {
+    archivesName = "seeu-neoforge-1.21.11"
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(project.java_version as int)
+    }
+
+    withSourcesJar()
+}
+
+neoForge {
+    version = project.neo_version
+
+    runs {
+        client {
+            client()
+        }
+
+        server {
+            server()
+            programArgument "--nogui"
+        }
+
+        configureEach {
+            systemProperty "neoforge.enabledGameTestNamespaces", "seeu"
+        }
+    }
+
+    mods {
+        "seeu" {
+            sourceSet(sourceSets.main)
+        }
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = project.java_version as int
+}
+
+tasks.named("jar") {
+    from(project(":common").sourceSets.main.output)
+}
+
+tasks.named("sourcesJar") {
+    from(project(":common").sourceSets.main.allSource)
+}
+
+dependencies {
+    implementation project(":common")
+}
+
+var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
+    var replaceProperties = [
+            minecraft_version      : project.minecraft_version,
+            minecraft_version_range: project.minecraft_version_range,
+            neo_version            : project.neo_version,
+            neo_version_range      : project.neo_version_range,
+            mod_id                 : "seeu",
+            mod_name               : "SeeU",
+            mod_license            : "MIT",
+            mod_version            : project.version,
+    ]
+    inputs.properties replaceProperties
+    expand replaceProperties
+    from "src/main/templates"
+    into "build/generated/sources/modMetadata"
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+}

@@ -1,21 +1,21 @@
-package dev.keryeshka.voxyseeu.fabric.server;
+package dev.keryeshka.voxyseeu.neoforge.server;
 
 import dev.keryeshka.voxyseeu.common.protocol.ClientHelloPacket;
 import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayerSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayersPacket;
 import dev.keryeshka.voxyseeu.common.protocol.FarVehicleSnapshot;
-import dev.keryeshka.voxyseeu.fabric.config.VoxySeeUServerConfig;
-import dev.keryeshka.voxyseeu.fabric.network.FarPlayersPayload;
+import dev.keryeshka.voxyseeu.neoforge.config.VoxySeeUServerConfig;
+import dev.keryeshka.voxyseeu.neoforge.network.FarPlayersPayload;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
-import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,20 +23,21 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class FabricFarPlayerService {
+public final class NeoForgeFarPlayerService {
     private final VoxySeeUServerConfig config;
     private final Map<UUID, ClientSettings> subscribers = new ConcurrentHashMap<>();
     private int tickCounter;
 
-    public FabricFarPlayerService(VoxySeeUServerConfig config) {
+    public NeoForgeFarPlayerService(VoxySeeUServerConfig config) {
         this.config = config;
     }
 
-    public void register() {
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) ->
-                subscribers.remove(handler.getPlayer().getUUID()));
+    public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        subscribers.remove(event.getEntity().getUUID());
+    }
 
-        ServerTickEvents.END_SERVER_TICK.register(this::onServerTick);
+    public void onServerTick(ServerTickEvent.Post event) {
+        onServerTick(event.getServer());
     }
 
     public void handleHello(ServerPlayer player, ClientHelloPacket packet) {
@@ -144,7 +145,7 @@ public final class FabricFarPlayerService {
         }
 
         FarPlayersPacket packet = new FarPlayersPacket(viewer.level().dimension().identifier().toString(), List.copyOf(snapshots));
-        ServerPlayNetworking.send(viewer, new FarPlayersPayload(packet));
+        PacketDistributor.sendToPlayer(viewer, new FarPlayersPayload(packet));
     }
 
     private record ClientSettings(
