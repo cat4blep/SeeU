@@ -22,10 +22,10 @@ If only the NeoForge upload fails after Fabric/Paper work, add the `neoforge` lo
 ## Publish current branch
 
 ```powershell
-python scripts/publish_modrinth.py --build --status draft
+python scripts/publish_modrinth.py --build --status unlisted
 ```
 
-`--build` runs `./gradlew clean build` first. `--status draft` is recommended for the first run so files can be checked on Modrinth before listing.
+`--build` runs `./gradlew clean build` first. `--status unlisted` is recommended for the first run so files can be checked on Modrinth before listing. Unlisted versions are not shown publicly but can be opened by direct URL and managed from the project versions page. Draft versions are supported by the API, but they are easy to lose track of in the UI.
 
 By default the script uploads three separate Modrinth versions:
 
@@ -37,20 +37,41 @@ Sources, dev, and javadoc jars are ignored.
 
 ## Publish all maintained branches
 
-Run the script once per branch:
+From the repository root:
+
+```powershell
+python scripts/publish_modrinth.py --all-branches --build --status unlisted
+```
+
+From the `scripts/` directory:
+
+```powershell
+python .\publish_modrinth.py --all-branches --build --status unlisted
+```
+
+This switches through:
+
+- `backport-1.21.1`
+- `backport-1.21.11`
+- `26.1.2`
+- `main`
+
+The working tree must be clean before using `--all-branches`, because the script needs to switch branches. It returns to the original branch when it finishes.
+
+You can also run the script manually once per branch:
 
 ```powershell
 git switch backport-1.21.1
-python scripts/publish_modrinth.py --build --status draft
+python scripts/publish_modrinth.py --build --status unlisted
 
 git switch backport-1.21.11
-python scripts/publish_modrinth.py --build --status draft
+python scripts/publish_modrinth.py --build --status unlisted
 
 git switch 26.1.2
-python scripts/publish_modrinth.py --build --status draft
+python scripts/publish_modrinth.py --build --status unlisted
 
 git switch main
-python scripts/publish_modrinth.py --build --status draft
+python scripts/publish_modrinth.py --build --status unlisted
 ```
 
 The script reads `java_version` from `gradle.properties` and tries to select a matching installed JDK for `--build`. If auto-detection fails, pass one explicitly:
@@ -69,10 +90,16 @@ Generated Modrinth version numbers use:
 
 Example: `0.6+mc26.2-fabric`.
 
-If Modrinth already has the same file hash, the script skips it. If the same `version_number` already exists with a different file, the script stops; bump `mod_version` or add a suffix:
+If Modrinth already has the same file hash, the script skips it. If the same `version_number` already exists, the script also skips it so repeated publish runs can continue after a partial upload. If this is a different build that must be uploaded separately, bump `mod_version` or add a suffix:
 
 ```powershell
 python scripts/publish_modrinth.py --build --version-suffix ".1"
+```
+
+To make existing `version_number` values fail the run instead of being skipped:
+
+```powershell
+python scripts/publish_modrinth.py --build --fail-on-existing-version
 ```
 
 ## Useful options
