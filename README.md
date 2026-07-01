@@ -95,7 +95,7 @@ Built jars are written to:
 ```powershell
 $env:MODRINTH_TOKEN = "your-token"
 $env:MODRINTH_PROJECT_ID = "your-project-id-or-slug"
-python scripts/publish_modrinth.py --build --status draft
+python scripts/publish_modrinth.py --all-branches --build --status unlisted
 ```
 
 See `docs/modrinth-publishing.md` for branch-by-branch publishing and script options.
