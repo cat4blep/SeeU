@@ -21,8 +21,8 @@ Each client renders those snapshots as remote player proxies only when the real 
 
 ## Supported Setup
 
-- Minecraft `26.1.2`
-- Java `25`
+- Minecraft `1.21.1`
+- Java `21`
 - Fabric client or NeoForge client
 - `Voxy` optional on the client
 - Server side: `Paper` plugin, Fabric server mod, or NeoForge server mod
@@ -89,3 +89,13 @@ Built jars are written to:
 - `fabric/build/libs/seeu-fabric-1.21.1-<version>.jar`
 - `neoforge/build/libs/seeu-neoforge-1.21.1-<version>.jar`
 - `paper/build/libs/seeu-paper-1.21.1-<version>.jar`
+
+## Publish to Modrinth
+
+```powershell
+$env:MODRINTH_TOKEN = "your-token"
+$env:MODRINTH_PROJECT_ID = "your-project-id-or-slug"
+python scripts/publish_modrinth.py --build --status draft
+```
+
+See `docs/modrinth-publishing.md` for branch-by-branch publishing and script options.
