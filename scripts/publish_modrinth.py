@@ -174,7 +174,7 @@ def parse_args() -> argparse.Namespace:
         "--name-template",
         default=os.environ.get(
             "MODRINTH_NAME_TEMPLATE",
-            "SeeU {mod_version} for Minecraft {minecraft_version} ({loader_display})",
+            "{mod_version}",
         ),
         help="Python format string for Modrinth version name.",
     )

@@ -88,7 +88,9 @@ Generated Modrinth version numbers use:
 {mod_version}+mc{minecraft_version}-{loader}
 ```
 
-Example: `0.6+mc26.2-fabric`.
+Example: `0.7+mc26.2-fabric`.
+
+The displayed Modrinth version name defaults to `mod_version` only, for example `0.7`.
 
 If Modrinth already has the same file hash, the script skips it. If the same `version_number` already exists, the script also skips it so repeated publish runs can continue after a partial upload. If this is a different build that must be uploaded separately, bump `mod_version` or add a suffix:
 
