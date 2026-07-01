@@ -28,6 +28,7 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_API_BASE = "https://api.modrinth.com/v2"
 DEFAULT_USER_AGENT = "cat4blep/SeeU publish_modrinth.py"
+DEFAULT_BRANCHES = ("backport-1.21.1", "backport-1.21.11", "26.1.2", "main")
 PUBLISHABLE_MODULES = {
     "fabric": {
         "loader": "fabric",
@@ -96,6 +97,25 @@ def parse_args() -> argparse.Namespace:
         help="Limit publishing to selected modules.",
     )
     parser.add_argument(
+        "--all-branches",
+        action="store_true",
+        help="Publish every maintained SeeU branch in one run.",
+    )
+    parser.add_argument(
+        "--branches",
+        nargs="+",
+        default=None,
+        help=(
+            "Branches used by --all-branches. Defaults to: "
+            + ", ".join(DEFAULT_BRANCHES)
+        ),
+    )
+    parser.add_argument(
+        "--keep-branch",
+        action="store_true",
+        help="With --all-branches, stay on the last processed branch instead of switching back.",
+    )
+    parser.add_argument(
         "--build",
         action="store_true",
         help="Run './gradlew clean build' before publishing.",
@@ -117,6 +137,11 @@ def parse_args() -> argparse.Namespace:
         "--skip-existing-check",
         action="store_true",
         help="Do not check Modrinth for already uploaded file hashes/version numbers.",
+    )
+    parser.add_argument(
+        "--fail-on-existing-version",
+        action="store_true",
+        help="Fail instead of skipping when a generated version_number already exists on Modrinth.",
     )
     parser.add_argument(
         "--version-type",
@@ -411,6 +436,28 @@ def run_git(args: list[str], fallback: str) -> str:
     return value if value else fallback
 
 
+def ensure_clean_worktree() -> None:
+    completed = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    status = completed.stdout.strip()
+    if status:
+        raise ModrinthError(
+            "--all-branches needs a clean working tree before it can switch branches:\n"
+            + status
+        )
+
+
+def switch_branch(branch: str) -> None:
+    print(f"\n=== Switching to {branch} ===", flush=True)
+    subprocess.run(["git", "switch", branch], cwd=ROOT, check=True)
+
+
 def resolve_project_reference(args: argparse.Namespace) -> None:
     encoded_project = urllib.parse.quote(args.project_id)
     url = f"{args.api_base.rstrip('/')}/project/{encoded_project}"
@@ -426,6 +473,7 @@ def resolve_project_reference(args: argparse.Namespace) -> None:
     project_id = payload.get("id")
     slug = payload.get("slug")
     title = payload.get("title")
+    args._project_loaders = set(payload.get("loaders", []))
     if not project_id:
         raise ModrinthError(f"Modrinth project response for {args.project_id} did not include an id.")
 
@@ -433,6 +481,23 @@ def resolve_project_reference(args: argparse.Namespace) -> None:
         label = title or slug or args.project_id
         print(f"Resolved Modrinth project {args.project_id} -> {project_id} ({label}).")
         args.project_id = project_id
+
+
+def warn_if_loader_is_not_enabled(args: argparse.Namespace, artifact: Artifact) -> None:
+    project_loaders = getattr(args, "_project_loaders", set())
+    if not project_loaders or artifact.loader in project_loaders:
+        return
+
+    warned = getattr(args, "_warned_missing_loaders", set())
+    if artifact.loader in warned:
+        return
+
+    print(
+        f"Warning: Modrinth project loaders do not currently include '{artifact.loader}'. "
+        "If this upload fails, add that loader in the project settings and rerun."
+    )
+    warned.add(artifact.loader)
+    args._warned_missing_loaders = warned
 
 
 def dependency_list(args: argparse.Namespace, loader: str) -> list[dict[str, str]]:
@@ -578,6 +643,25 @@ def existing_version_numbers(args: argparse.Namespace) -> set[str]:
     }
 
 
+def should_skip_existing_version(
+    args: argparse.Namespace,
+    artifact: Artifact,
+    version_number: str,
+    existing_numbers: set[str],
+) -> bool:
+    if version_number not in existing_numbers:
+        return False
+
+    message = (
+        f"Skipping {artifact.path.name}: version_number {version_number} already exists on Modrinth. "
+        "Use --version-suffix if this is a different build that must be uploaded separately."
+    )
+    if args.fail_on_existing_version:
+        raise ModrinthError(message)
+    print(message)
+    return True
+
+
 def encode_multipart(data: dict[str, Any], file_path: Path) -> tuple[bytes, str]:
     boundary = f"----seeu-modrinth-{uuid.uuid4().hex}"
     lines: list[bytes] = []
@@ -622,52 +706,86 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ModrinthError("Missing --project-id or MODRINTH_PROJECT_ID.")
     if not args.dry_run and not args.token:
         raise ModrinthError("Missing --token or MODRINTH_TOKEN.")
+    if args.all_branches and not args.build:
+        raise ModrinthError("--all-branches requires --build so stale jars from another branch cannot be uploaded.")
     if args.status == "draft":
-        print("Publishing as draft; uploaded versions will not be listed until moved out of draft.")
+        print(
+            "Publishing as draft; draft versions may not be visible on the public project page. "
+            "Use --status unlisted if you want a private review URL."
+        )
+
+
+def publish_current_branch(args: argparse.Namespace, existing_numbers: set[str]) -> None:
+    props = read_gradle_properties()
+    for key in ("mod_version", "minecraft_version"):
+        if key not in props:
+            raise ModrinthError(f"Missing {key} in gradle.properties.")
+
+    branch = run_git(["branch", "--show-current"], fallback="unknown")
+    print(f"\n=== Publishing branch {branch} for Minecraft {props['minecraft_version']} ===")
+
+    if args.build:
+        run_build(args, props)
+
+    changelog = read_changelog(args, props)
+    artifacts = discover_artifacts(args.only)
+
+    for artifact in artifacts:
+        data = format_metadata(args, props, artifact, changelog)
+        print(f"\n{artifact.loader_display}: {artifact.path.name}")
+        print(f"  version_number: {data['version_number']}")
+        print(f"  sha512: {artifact.sha512}")
+
+        if args.dry_run:
+            print(json.dumps(data, indent=2, ensure_ascii=False))
+            continue
+
+        warn_if_loader_is_not_enabled(args, artifact)
+
+        if not args.skip_existing_check and check_file_exists(args, artifact):
+            continue
+
+        if not args.skip_existing_check and should_skip_existing_version(
+            args,
+            artifact,
+            data["version_number"],
+            existing_numbers,
+        ):
+            continue
+
+        response = publish_version(args, data, artifact)
+        print(f"  published: {response.get('id')} ({response.get('version_number')})")
+        existing_numbers.add(data["version_number"])
+
+
+def publish_all_branches(args: argparse.Namespace, existing_numbers: set[str]) -> None:
+    ensure_clean_worktree()
+    branches = args.branches or list(DEFAULT_BRANCHES)
+    original_branch = run_git(["branch", "--show-current"], fallback="")
+
+    try:
+        for branch in branches:
+            switch_branch(branch)
+            publish_current_branch(args, existing_numbers)
+    finally:
+        if original_branch and not args.keep_branch:
+            switch_branch(original_branch)
 
 
 def main() -> int:
     args = parse_args()
     try:
         validate_args(args)
-        props = read_gradle_properties()
-        for key in ("mod_version", "minecraft_version"):
-            if key not in props:
-                raise ModrinthError(f"Missing {key} in gradle.properties.")
-
         resolve_project_reference(args)
-        if args.build:
-            run_build(args, props)
-
-        changelog = read_changelog(args, props)
-        artifacts = discover_artifacts(args.only)
         existing_numbers = (
             set()
             if args.dry_run or args.skip_existing_check
             else existing_version_numbers(args)
         )
-
-        for artifact in artifacts:
-            data = format_metadata(args, props, artifact, changelog)
-            print(f"\n{artifact.loader_display}: {artifact.path.name}")
-            print(f"  version_number: {data['version_number']}")
-            print(f"  sha512: {artifact.sha512}")
-
-            if args.dry_run:
-                print(json.dumps(data, indent=2, ensure_ascii=False))
-                continue
-
-            if not args.skip_existing_check and check_file_exists(args, artifact):
-                continue
-
-            if data["version_number"] in existing_numbers:
-                raise ModrinthError(
-                    f"Version number {data['version_number']} already exists on Modrinth. "
-                    "Bump mod_version or pass --version-suffix."
-                )
-
-            response = publish_version(args, data, artifact)
-            print(f"  published: {response.get('id')} ({response.get('version_number')})")
+        if args.all_branches:
+            publish_all_branches(args, existing_numbers)
+        else:
+            publish_current_branch(args, existing_numbers)
 
         return 0
     except (ModrinthError, subprocess.CalledProcessError, OSError, KeyError) as error:
