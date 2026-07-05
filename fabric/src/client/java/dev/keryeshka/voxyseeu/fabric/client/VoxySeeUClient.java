@@ -13,9 +13,14 @@ import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
+import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.material.FogType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.lwjgl.glfw.GLFW;
@@ -40,12 +45,13 @@ public final class VoxySeeUClient implements ClientModInitializer {
 
         config = VoxySeeUClientConfig.load();
         LOGGER.info(
-                "Loaded SeeU client config: enabled={}, maxDistance={}, minDistance={}, animationDistance={}, nameTags={}, shareSelf={}, shareMaxDistance={}",
+                "Loaded SeeU client config: enabled={}, maxDistance={}, minDistance={}, animationDistance={}, nameTags={}, disableVanillaFog={}, shareSelf={}, shareMaxDistance={}",
                 config.enabled,
                 config.maximumRenderDistanceBlocks,
                 config.minimumProxyDistanceBlocks,
                 config.maximumAnimationDistanceBlocks,
                 config.renderNameTags,
+                config.disableVanillaFog,
                 config.shareSelf,
                 config.shareMaximumDistanceBlocks
         );
@@ -93,6 +99,15 @@ public final class VoxySeeUClient implements ClientModInitializer {
         }
         config.save();
         sendHello();
+    }
+
+    public static boolean shouldDisableVanillaFog(Camera camera) {
+        if (config == null || !config.enabled || !config.disableVanillaFog || camera.getFluidInCamera() != FogType.NONE) {
+            return false;
+        }
+        Entity entity = camera.getEntity();
+        return !(entity instanceof LivingEntity livingEntity
+                && (livingEntity.hasEffect(MobEffects.BLINDNESS) || livingEntity.hasEffect(MobEffects.DARKNESS)));
     }
 
     private static void sendHello() {
