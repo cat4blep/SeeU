@@ -11,12 +11,15 @@ import net.minecraft.core.registries.BuiltInRegistries;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.item.ItemStack;
 
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -24,6 +27,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class FabricFarPlayerService {
+    private static final VisibilityBridge VISIBILITY_BRIDGE = VisibilityBridge.create();
+
     private final VoxySeeUServerConfig config;
     private final Map<UUID, ClientSettings> subscribers = new ConcurrentHashMap<>();
     private int tickCounter;
@@ -105,6 +110,9 @@ public final class FabricFarPlayerService {
             if (target.isInvisible()) {
                 continue;
             }
+            if (!VISIBILITY_BRIDGE.canSee(target, viewer)) {
+                continue;
+            }
 
             double distanceSquared = viewer.distanceToSqr(target);
             if (distanceSquared < minimumDistanceSquared || distanceSquared > maximumDistanceSquared) {
@@ -158,6 +166,30 @@ public final class FabricFarPlayerService {
 
     private static boolean isWaitingToRespawn(ServerPlayer player) {
         return !player.isAlive() || player.isRemoved();
+    }
+
+    private interface VisibilityBridge {
+        boolean canSee(ServerPlayer target, ServerPlayer viewer);
+
+        static VisibilityBridge create() {
+            if (!FabricLoader.getInstance().isModLoaded("melius-vanish")) {
+                return (target, viewer) -> true;
+            }
+            try {
+                Method method = Class.forName("me.drex.vanish.api.VanishAPI")
+                        .getMethod("canSeePlayer", ServerPlayer.class, ServerPlayer.class);
+                return (target, viewer) -> {
+                    try {
+                        Object result = method.invoke(null, target, viewer);
+                        return Boolean.TRUE.equals(result);
+                    } catch (IllegalAccessException | InvocationTargetException exception) {
+                        return true;
+                    }
+                };
+            } catch (ClassNotFoundException | NoSuchMethodException exception) {
+                return (target, viewer) -> true;
+            }
+        }
     }
 
     private static FarItemSnapshot toItemSnapshot(ItemStack stack) {
