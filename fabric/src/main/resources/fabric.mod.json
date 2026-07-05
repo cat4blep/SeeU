@@ -18,6 +18,12 @@
       "dev.keryeshka.voxyseeu.fabric.client.VoxySeeUClient"
     ]
   },
+  "mixins": [
+    {
+      "config": "seeu.client.mixins.json",
+      "environment": "client"
+    }
+  ],
   "depends": {
     "fabricloader": ">=${loader_version}",
     "minecraft": "~${minecraft_version}",
