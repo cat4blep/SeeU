@@ -1,3 +1,5 @@
+![SeeU banner](docs/banner.png)
+
 # SeeU
 
 `SeeU` is a mod that lets you see players far beyond vanilla entity render distance.
