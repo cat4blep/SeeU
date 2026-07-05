@@ -10,7 +10,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
 public final class VoxySeeUClientConfig {
-    private static final int CURRENT_CONFIG_VERSION = 5;
+    private static final int CURRENT_CONFIG_VERSION = 6;
     private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
 
     public int configVersion = CURRENT_CONFIG_VERSION;
@@ -19,6 +19,7 @@ public final class VoxySeeUClientConfig {
     public int minimumProxyDistanceBlocks = SharedDefaults.DEFAULT_MIN_PROXY_DISTANCE_BLOCKS;
     public int maximumAnimationDistanceBlocks = SharedDefaults.DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS;
     public boolean renderNameTags = SharedDefaults.DEFAULT_RENDER_NAME_TAGS;
+    public boolean disableVanillaFog = SharedDefaults.DEFAULT_DISABLE_VANILLA_FOG;
     public boolean shareSelf = SharedDefaults.DEFAULT_SHARE_SELF;
     public int shareMaximumDistanceBlocks = SharedDefaults.DEFAULT_SHARE_MAX_DISTANCE_BLOCKS;
 
@@ -38,6 +39,9 @@ public final class VoxySeeUClientConfig {
                             ? config.maximumRenderDistanceBlocks
                             : SharedDefaults.DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS
             );
+        }
+        if (config.configVersion < CURRENT_CONFIG_VERSION) {
+            config.disableVanillaFog = SharedDefaults.DEFAULT_DISABLE_VANILLA_FOG;
         }
         config.clamp();
         config.save();
@@ -69,6 +73,7 @@ public final class VoxySeeUClientConfig {
         copy.minimumProxyDistanceBlocks = this.minimumProxyDistanceBlocks;
         copy.maximumAnimationDistanceBlocks = this.maximumAnimationDistanceBlocks;
         copy.renderNameTags = this.renderNameTags;
+        copy.disableVanillaFog = this.disableVanillaFog;
         copy.shareSelf = this.shareSelf;
         copy.shareMaximumDistanceBlocks = this.shareMaximumDistanceBlocks;
         return copy;
@@ -81,6 +86,7 @@ public final class VoxySeeUClientConfig {
         this.minimumProxyDistanceBlocks = other.minimumProxyDistanceBlocks;
         this.maximumAnimationDistanceBlocks = other.maximumAnimationDistanceBlocks;
         this.renderNameTags = other.renderNameTags;
+        this.disableVanillaFog = other.disableVanillaFog;
         this.shareSelf = other.shareSelf;
         this.shareMaximumDistanceBlocks = other.shareMaximumDistanceBlocks;
         clamp();

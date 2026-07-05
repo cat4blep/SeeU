@@ -24,6 +24,7 @@ final class SeeUConfigScreen extends Screen {
     private DistanceSlider shareDistanceSlider;
     private Button renderToggleButton;
     private Button nameTagsButton;
+    private Button fogToggleButton;
     private Button shareSelfButton;
 
     SeeUConfigScreen(Screen parent, VoxySeeUClientConfig draft, Consumer<VoxySeeUClientConfig> onSave) {
@@ -93,14 +94,19 @@ final class SeeUConfigScreen extends Screen {
             refreshButtons();
         }).bounds(x, y + rowHeight * 4, contentWidth, 20).build());
 
-        shareSelfButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
-            draft.shareSelf = !draft.shareSelf;
+        fogToggleButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            draft.disableVanillaFog = !draft.disableVanillaFog;
             refreshButtons();
         }).bounds(x, y + rowHeight * 5, contentWidth, 20).build());
 
+        shareSelfButton = addRenderableWidget(Button.builder(Component.empty(), button -> {
+            draft.shareSelf = !draft.shareSelf;
+            refreshButtons();
+        }).bounds(x, y + rowHeight * 6, contentWidth, 20).build());
+
         shareDistanceSlider = addRenderableWidget(new DistanceSlider(
                 x,
-                y + rowHeight * 6,
+                y + rowHeight * 7,
                 contentWidth,
                 "screen.seeu.share_distance",
                 64,
@@ -109,7 +115,7 @@ final class SeeUConfigScreen extends Screen {
                 value -> draft.shareMaximumDistanceBlocks = value
         ));
 
-        int buttonY = y + rowHeight * 8;
+        int buttonY = y + rowHeight * 9;
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
             draft.clamp();
             onSave.accept(draft.copy());
@@ -140,11 +146,13 @@ final class SeeUConfigScreen extends Screen {
     private void refreshButtons() {
         renderToggleButton.setMessage(toggleLabel("screen.seeu.render_enabled", draft.enabled));
         nameTagsButton.setMessage(toggleLabel("screen.seeu.name_tags", draft.renderNameTags));
+        fogToggleButton.setMessage(toggleLabel("screen.seeu.disable_vanilla_fog", draft.disableVanillaFog));
         shareSelfButton.setMessage(toggleLabel("screen.seeu.share_self", draft.shareSelf));
         renderDistanceSlider.active = draft.enabled;
         minDistanceSlider.active = draft.enabled;
         animationDistanceSlider.active = draft.enabled;
         nameTagsButton.active = draft.enabled;
+        fogToggleButton.active = draft.enabled;
         shareDistanceSlider.active = draft.shareSelf;
         minDistanceSlider.setMaximum(draft.maximumRenderDistanceBlocks);
         animationDistanceSlider.setMaximum(draft.maximumRenderDistanceBlocks);
