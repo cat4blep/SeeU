@@ -8,6 +8,8 @@ base {
     archivesName = "seeu-paper-1.21.1"
 }
 
+version = project.plugin_version
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(project.java_version as int)
