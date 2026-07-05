@@ -1,6 +1,7 @@
 package dev.keryeshka.voxyseeu.fabric.client.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import dev.keryeshka.voxyseeu.fabric.client.VoxySeeUClient;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
@@ -15,6 +16,16 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(FogRenderer.class)
 abstract class FogRendererMixin {
+    @Inject(method = "getBuffer", at = @At("HEAD"), cancellable = true)
+    private void seeu$useNoFogBuffer(
+            FogRenderer.FogMode fogMode,
+            CallbackInfoReturnable<GpuBufferSlice> callback
+    ) {
+        if (fogMode == FogRenderer.FogMode.WORLD && VoxySeeUClient.shouldDisableVanillaFog()) {
+            callback.setReturnValue(((FogRenderer) (Object) this).getBuffer(FogRenderer.FogMode.NONE));
+        }
+    }
+
     @Inject(
             method = "setupFog",
             at = @At(

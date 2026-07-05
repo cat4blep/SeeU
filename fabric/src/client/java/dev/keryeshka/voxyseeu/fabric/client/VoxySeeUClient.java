@@ -108,6 +108,14 @@ public final class VoxySeeUClient implements ClientModInitializer {
                 && (livingEntity.hasEffect(MobEffects.BLINDNESS) || livingEntity.hasEffect(MobEffects.DARKNESS)));
     }
 
+    public static boolean shouldDisableVanillaFog() {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.gameRenderer == null) {
+            return false;
+        }
+        return shouldDisableVanillaFog(minecraft.gameRenderer.getMainCamera());
+    }
+
     private static void sendHello() {
         Minecraft minecraft = Minecraft.getInstance();
         if (config == null || minecraft.getConnection() == null) {
