@@ -8,11 +8,17 @@ import dev.keryeshka.voxyseeu.common.protocol.ProtocolConstants;
 import dev.keryeshka.voxyseeu.neoforge.client.config.VoxySeeUClientConfig;
 import dev.keryeshka.voxyseeu.neoforge.network.ClientHelloPayload;
 import dev.keryeshka.voxyseeu.neoforge.network.FarPlayersPayload;
+import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.resources.Identifier;
+import net.minecraft.world.effect.MobEffects;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.level.material.FogType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -20,6 +26,7 @@ import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
+import net.neoforged.neoforge.client.event.ViewportEvent;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import org.lwjgl.glfw.GLFW;
@@ -92,6 +99,15 @@ public final class VoxySeeUNeoForgeClient {
         renderer.render(event, submitNodeCollector(event));
     }
 
+    @SubscribeEvent
+    public static void onRenderFog(ViewportEvent.RenderFog event) {
+        ensureLoaded();
+        if (!shouldDisableVanillaFog(event.getCamera())) {
+            return;
+        }
+        disableFog(event.getFogData());
+    }
+
     public static void handleFarPlayers(FarPlayersPacket packet) {
         ensureLoaded();
         boolean firstPacket = !TRACKER.hasReceivedPacket();
@@ -108,12 +124,13 @@ public final class VoxySeeUNeoForgeClient {
         config = VoxySeeUClientConfig.load();
         renderer = new FarPlayerRenderer(TRACKER, config);
         LOGGER.info(
-                "Loaded SeeU client config: enabled={}, maxDistance={}, minDistance={}, animationDistance={}, nameTags={}, shareSelf={}, shareMaxDistance={}",
+                "Loaded SeeU client config: enabled={}, maxDistance={}, minDistance={}, animationDistance={}, nameTags={}, disableVanillaFog={}, shareSelf={}, shareMaxDistance={}",
                 config.enabled,
                 config.maximumRenderDistanceBlocks,
                 config.minimumProxyDistanceBlocks,
                 config.maximumAnimationDistanceBlocks,
                 config.renderNameTags,
+                config.disableVanillaFog,
                 config.shareSelf,
                 config.shareMaximumDistanceBlocks
         );
@@ -124,6 +141,24 @@ public final class VoxySeeUNeoForgeClient {
         config.copyFrom(updatedConfig);
         config.save();
         sendHello();
+    }
+
+    private static boolean shouldDisableVanillaFog(Camera camera) {
+        if (config == null || !config.enabled || !config.disableVanillaFog || camera.getFluidInCamera() != FogType.NONE) {
+            return false;
+        }
+        Entity entity = camera.entity();
+        return !(entity instanceof LivingEntity livingEntity
+                && (livingEntity.hasEffect(MobEffects.BLINDNESS) || livingEntity.hasEffect(MobEffects.DARKNESS)));
+    }
+
+    private static void disableFog(FogData fogData) {
+        fogData.environmentalStart = Float.MAX_VALUE;
+        fogData.environmentalEnd = Float.MAX_VALUE;
+        fogData.renderDistanceStart = Float.MAX_VALUE;
+        fogData.renderDistanceEnd = Float.MAX_VALUE;
+        fogData.skyEnd = Float.MAX_VALUE;
+        fogData.cloudEnd = Float.MAX_VALUE;
     }
 
     private static void sendHello() {
