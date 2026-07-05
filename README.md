@@ -90,12 +90,3 @@ Built jars are written to:
 - `neoforge/build/libs/seeu-neoforge-1.21.11-<version>.jar`
 - `paper/build/libs/seeu-paper-1.21.11-<version>.jar`
 
-## Publish to Modrinth
-
-```powershell
-$env:MODRINTH_TOKEN = "your-token"
-$env:MODRINTH_PROJECT_ID = "your-project-id-or-slug"
-python scripts/publish_modrinth.py --all-branches --build --status unlisted
-```
-
-See `docs/modrinth-publishing.md` for branch-by-branch publishing and script options.
