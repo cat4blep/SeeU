@@ -34,10 +34,12 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 final class FarPlayerRenderer {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
     private static final float WALK_ANIMATION_SCALE = 0.4F;
+    private static final AtomicInteger NEXT_PROXY_ENTITY_ID = new AtomicInteger(1_000_000_000);
 
     private final FarPlayerTracker tracker;
     private final VoxySeeUClientConfig config;
@@ -193,6 +195,7 @@ final class FarPlayerRenderer {
             if (entity == null) {
                 return null;
             }
+            entity.setId(nextProxyEntityId());
             entity.noPhysics = true;
             entity.setNoGravity(true);
             entity.setInvisible(false);
@@ -200,6 +203,12 @@ final class FarPlayerRenderer {
         } catch (Exception ignored) {
             return null;
         }
+    }
+
+    private static int nextProxyEntityId() {
+        return NEXT_PROXY_ENTITY_ID.getAndUpdate(current ->
+                current == Integer.MAX_VALUE ? 1_000_000_000 : current + 1
+        );
     }
 
     private static void applyVehicleState(Entity vehicle, TrackedFarPlayer tracked, long now) {
@@ -242,6 +251,7 @@ final class FarPlayerRenderer {
         private FarPlayerRenderProxy(ClientLevel level, UUID trackedUuid, String name) {
             super(level, new GameProfile(trackedUuid, name));
             this.trackedUuid = trackedUuid;
+            this.setId(nextProxyEntityId());
             this.noPhysics = true;
             this.setNoGravity(true);
             this.setInvisible(false);
