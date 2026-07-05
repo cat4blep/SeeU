@@ -536,8 +536,9 @@ def format_metadata(
     changelog: str,
 ) -> dict[str, Any]:
     minecraft_version = props["minecraft_version"]
+    artifact_version = props.get("plugin_version", props["mod_version"]) if artifact.module == "paper" else props["mod_version"]
     context = {
-        "mod_version": props["mod_version"],
+        "mod_version": artifact_version,
         "minecraft_version": minecraft_version,
         "loader": artifact.loader,
         "loader_display": artifact.loader_display,
