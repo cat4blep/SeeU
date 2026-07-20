@@ -42,6 +42,7 @@ public final class VoxySeeUClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         FabricPayloads.register();
+        KeyBindingHelper.registerKeyBinding(OPEN_CONFIG_KEY);
 
         config = VoxySeeUClientConfig.load();
         LOGGER.info(
@@ -56,7 +57,6 @@ public final class VoxySeeUClient implements ClientModInitializer {
                 config.shareMaximumDistanceBlocks
         );
         renderer = new FarPlayerRenderer(tracker, config);
-        KeyBindingHelper.registerKeyBinding(OPEN_CONFIG_KEY);
 
         ClientPlayConnectionEvents.JOIN.register((handler, sender, client) -> {
             tracker.clear();
