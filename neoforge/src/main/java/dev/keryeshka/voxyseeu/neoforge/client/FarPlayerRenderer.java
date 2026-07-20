@@ -186,6 +186,9 @@ final class FarPlayerRenderer {
     }
 
     private static Entity createVehicleProxy(ClientLevel level, String entityTypeId) {
+        if (!entityTypeId.startsWith("minecraft:")) {
+            return null;
+        }
         try {
             EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(entityTypeId));
             if (entityType == null) {

@@ -9,6 +9,7 @@ import dev.keryeshka.voxyseeu.fabric.network.FabricPayloads;
 import dev.keryeshka.voxyseeu.fabric.network.FarPlayersPayload;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
@@ -41,6 +42,7 @@ public final class VoxySeeUClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         FabricPayloads.register();
+        KeyMappingHelper.registerKeyMapping(OPEN_CONFIG_KEY);
 
         config = VoxySeeUClientConfig.load();
         LOGGER.info(
