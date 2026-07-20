@@ -7,7 +7,7 @@ public final class SharedDefaults {
     public static final int DEFAULT_MIN_PROXY_DISTANCE_BLOCKS = 0;
     public static final int DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS = DEFAULT_MAX_RENDER_DISTANCE_BLOCKS;
     public static final boolean DEFAULT_RENDER_NAME_TAGS = true;
-    public static final boolean DEFAULT_DISABLE_VANILLA_FOG = true;
+    public static final boolean DEFAULT_DISABLE_VANILLA_FOG = false;
     public static final boolean DEFAULT_SEND_SPECTATORS = false;
     public static final boolean DEFAULT_SHARE_SELF = true;
     public static final int DEFAULT_SHARE_MAX_DISTANCE_BLOCKS = DEFAULT_MAX_RENDER_DISTANCE_BLOCKS;
