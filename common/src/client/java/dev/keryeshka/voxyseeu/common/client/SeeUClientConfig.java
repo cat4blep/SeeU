@@ -1,15 +1,16 @@
-package dev.keryeshka.voxyseeu.neoforge.client.config;
+package dev.keryeshka.voxyseeu.common.client;
 
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
-import dev.keryeshka.voxyseeu.neoforge.config.JsonConfigIO;
-import net.neoforged.fml.loading.FMLPaths;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 
-public final class VoxySeeUClientConfig {
+public final class SeeUClientConfig {
+    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final int CURRENT_CONFIG_VERSION = 6;
     private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
 
@@ -23,16 +24,29 @@ public final class VoxySeeUClientConfig {
     public boolean shareSelf = SharedDefaults.DEFAULT_SHARE_SELF;
     public int shareMaximumDistanceBlocks = SharedDefaults.DEFAULT_SHARE_MAX_DISTANCE_BLOCKS;
 
-    public static VoxySeeUClientConfig load() {
-        Path configDir = FMLPaths.CONFIGDIR.get();
-        Path path = configDir.resolve("seeu-client.json");
-        migrateLegacyConfigPath(configDir.resolve("voxyseeu-client.json"), path);
-        VoxySeeUClientConfig config = JsonConfigIO.load(path, VoxySeeUClientConfig.class, VoxySeeUClientConfig::new);
-        if (config.configVersion < CURRENT_CONFIG_VERSION
+    private transient Path configPath;
+
+    public static SeeUClientConfig load(Path configDirectory) {
+        Path configPath = configDirectory.resolve("seeu-client.json");
+        migrateLegacyConfigPath(configDirectory.resolve("voxyseeu-client.json"), configPath);
+        SeeUClientConfig config;
+        try {
+            Files.createDirectories(configDirectory);
+            config = Files.exists(configPath)
+                    ? GSON.fromJson(Files.readString(configPath), SeeUClientConfig.class)
+                    : new SeeUClientConfig();
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to load config: " + configPath, exception);
+        }
+        if (config == null) {
+            throw new IllegalStateException("Config is empty: " + configPath);
+        }
+        config.configPath = configPath;
+        if (config.configVersion < 3
                 && config.minimumProxyDistanceBlocks == LEGACY_GAP_DISTANCE_BLOCKS) {
             config.minimumProxyDistanceBlocks = SharedDefaults.DEFAULT_MIN_PROXY_DISTANCE_BLOCKS;
         }
-        if (config.configVersion < CURRENT_CONFIG_VERSION && config.maximumAnimationDistanceBlocks <= 0) {
+        if (config.configVersion < 5 && config.maximumAnimationDistanceBlocks <= 0) {
             config.maximumAnimationDistanceBlocks = Math.max(
                     64,
                     config.maximumRenderDistanceBlocks > 0
@@ -40,34 +54,34 @@ public final class VoxySeeUClientConfig {
                             : SharedDefaults.DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS
             );
         }
-        if (config.configVersion < CURRENT_CONFIG_VERSION) {
+        if (config.configVersion < 6) {
             config.disableVanillaFog = SharedDefaults.DEFAULT_DISABLE_VANILLA_FOG;
         }
-        config.clamp();
         config.save();
         return config;
     }
 
     public void save() {
         this.configVersion = CURRENT_CONFIG_VERSION;
-        clamp();
-        JsonConfigIO.save(configPath(), this);
-    }
-
-    public void clamp() {
-        this.configVersion = CURRENT_CONFIG_VERSION;
         this.maximumRenderDistanceBlocks = Math.max(64, maximumRenderDistanceBlocks);
-        this.minimumProxyDistanceBlocks = Math.max(0, Math.min(minimumProxyDistanceBlocks, maximumRenderDistanceBlocks));
+        this.minimumProxyDistanceBlocks = Math.max(
+                0,
+                Math.min(minimumProxyDistanceBlocks, maximumRenderDistanceBlocks)
+        );
         this.maximumAnimationDistanceBlocks = Math.max(
                 0,
                 Math.min(maximumAnimationDistanceBlocks, maximumRenderDistanceBlocks)
         );
         this.shareMaximumDistanceBlocks = Math.max(64, shareMaximumDistanceBlocks);
+        try {
+            Files.writeString(configPath, GSON.toJson(this));
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to save config: " + configPath, exception);
+        }
     }
 
-    public VoxySeeUClientConfig copy() {
-        VoxySeeUClientConfig copy = new VoxySeeUClientConfig();
-        copy.configVersion = this.configVersion;
+    public SeeUClientConfig copy() {
+        SeeUClientConfig copy = new SeeUClientConfig();
         copy.enabled = this.enabled;
         copy.maximumRenderDistanceBlocks = this.maximumRenderDistanceBlocks;
         copy.minimumProxyDistanceBlocks = this.minimumProxyDistanceBlocks;
@@ -79,8 +93,7 @@ public final class VoxySeeUClientConfig {
         return copy;
     }
 
-    public void copyFrom(VoxySeeUClientConfig other) {
-        this.configVersion = other.configVersion;
+    public void copyFrom(SeeUClientConfig other) {
         this.enabled = other.enabled;
         this.maximumRenderDistanceBlocks = other.maximumRenderDistanceBlocks;
         this.minimumProxyDistanceBlocks = other.minimumProxyDistanceBlocks;
@@ -89,20 +102,17 @@ public final class VoxySeeUClientConfig {
         this.disableVanillaFog = other.disableVanillaFog;
         this.shareSelf = other.shareSelf;
         this.shareMaximumDistanceBlocks = other.shareMaximumDistanceBlocks;
-        clamp();
     }
 
-    private static Path configPath() {
-        return FMLPaths.CONFIGDIR.get().resolve("seeu-client.json");
-    }
-
-    private static void migrateLegacyConfigPath(Path legacyPath, Path path) {
-        if (Files.exists(path) || !Files.exists(legacyPath)) {
+    private static void migrateLegacyConfigPath(Path legacyPath, Path configPath) {
+        if (Files.exists(configPath) || !Files.exists(legacyPath)) {
             return;
         }
         try {
-            Files.copy(legacyPath, path, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ignored) {
+            Files.createDirectories(configPath.getParent());
+            Files.copy(legacyPath, configPath, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to migrate config: " + legacyPath, exception);
         }
     }
 }

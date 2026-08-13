@@ -5,7 +5,6 @@ public record ClientHelloPacket(
         boolean enabled,
         int maximumRenderDistanceBlocks,
         int minimumProxyDistanceBlocks,
-        boolean renderNameTags,
         boolean shareSelf,
         int shareMaximumDistanceBlocks
 ) {

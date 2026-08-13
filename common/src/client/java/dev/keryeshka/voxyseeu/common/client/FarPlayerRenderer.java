@@ -1,18 +1,18 @@
-package dev.keryeshka.voxyseeu.neoforge.client;
+package dev.keryeshka.voxyseeu.common.client;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
-import dev.keryeshka.voxyseeu.neoforge.client.config.VoxySeeUClientConfig;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.player.RemotePlayer;
+import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.state.level.LevelRenderState;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -25,7 +25,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,23 +35,23 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-final class FarPlayerRenderer {
+public final class FarPlayerRenderer {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
     private static final float WALK_ANIMATION_SCALE = 0.4F;
     private static final AtomicInteger NEXT_PROXY_ENTITY_ID = new AtomicInteger(1_000_000_000);
 
     private final FarPlayerTracker tracker;
-    private final VoxySeeUClientConfig config;
+    private final SeeUClientConfig config;
     private final Map<UUID, FarPlayerRenderProxy> proxies = new HashMap<>();
     private final Map<UUID, Entity> vehicles = new HashMap<>();
     private boolean loggedFirstSubmission;
 
-    FarPlayerRenderer(FarPlayerTracker tracker, VoxySeeUClientConfig config) {
+    public FarPlayerRenderer(FarPlayerTracker tracker, SeeUClientConfig config) {
         this.tracker = tracker;
         this.config = config;
     }
 
-    void clear() {
+    public void clear() {
         for (Entity vehicle : vehicles.values()) {
             vehicle.ejectPassengers();
         }
@@ -61,12 +60,15 @@ final class FarPlayerRenderer {
         loggedFirstSubmission = false;
     }
 
-    void render(RenderLevelStageEvent context, SubmitNodeCollector submitNodeCollector) {
+    public void render(
+            PoseStack poseStack,
+            LevelRenderState levelRenderState,
+            SubmitNodeCollector submitNodeCollector
+    ) {
         Minecraft minecraft = Minecraft.getInstance();
         ClientLevel level = minecraft.level;
         LocalPlayer localPlayer = minecraft.player;
-        PoseStack poseStack = context.getPoseStack();
-        if (level == null || localPlayer == null || poseStack == null || submitNodeCollector == null) {
+        if (level == null || localPlayer == null) {
             clear();
             return;
         }
@@ -119,7 +121,6 @@ final class FarPlayerRenderer {
                     tracked,
                     position,
                     config.renderNameTags,
-                    config.maximumRenderDistanceBlocks,
                     allowWalkAnimation,
                     animationTick,
                     now
@@ -145,7 +146,7 @@ final class FarPlayerRenderer {
                         Vec3 vehiclePosition = tracked.renderVehiclePosition(now);
                         dispatcher.submit(
                                 vehicleRenderState,
-                                context.getLevelRenderState().cameraRenderState,
+                                levelRenderState.cameraRenderState,
                                 vehiclePosition.x - cameraPosition.x,
                                 vehiclePosition.y - cameraPosition.y,
                                 vehiclePosition.z - cameraPosition.z,
@@ -163,7 +164,7 @@ final class FarPlayerRenderer {
             var renderState = dispatcher.extractEntity(proxy, partialTick);
             dispatcher.submit(
                     renderState,
-                    context.getLevelRenderState().cameraRenderState,
+                    levelRenderState.cameraRenderState,
                     position.x - cameraPosition.x,
                     position.y - cameraPosition.y,
                     position.z - cameraPosition.z,
@@ -186,26 +187,23 @@ final class FarPlayerRenderer {
     }
 
     private static Entity createVehicleProxy(ClientLevel level, String entityTypeId) {
-        if (!entityTypeId.startsWith("minecraft:")) {
+        Identifier typeId = Identifier.tryParse(entityTypeId);
+        if (typeId == null) {
             return null;
         }
-        try {
-            EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getValue(Identifier.parse(entityTypeId));
-            if (entityType == null) {
-                return null;
-            }
-            Entity entity = entityType.create(level, EntitySpawnReason.LOAD);
-            if (entity == null) {
-                return null;
-            }
-            entity.setId(nextProxyEntityId());
-            entity.noPhysics = true;
-            entity.setNoGravity(true);
-            entity.setInvisible(false);
-            return entity;
-        } catch (Exception ignored) {
+        EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.getValue(typeId);
+        if (entityType == null) {
             return null;
         }
+        Entity entity = entityType.create(level, EntitySpawnReason.LOAD);
+        if (entity == null) {
+            return null;
+        }
+        entity.setId(nextProxyEntityId());
+        entity.noPhysics = true;
+        entity.setNoGravity(true);
+        entity.setInvisible(false);
+        return entity;
     }
 
     private static int nextProxyEntityId() {
@@ -247,7 +245,6 @@ final class FarPlayerRenderer {
 
     private static final class FarPlayerRenderProxy extends RemotePlayer {
         private final UUID trackedUuid;
-        private int maximumRenderDistanceBlocks;
         private Vec3 lastWalkAnimationPosition;
         private int lastWalkAnimationTick = Integer.MIN_VALUE;
 
@@ -265,7 +262,6 @@ final class FarPlayerRenderer {
                 TrackedFarPlayer tracked,
                 Vec3 position,
                 boolean renderNameTags,
-                int maximumRenderDistanceBlocks,
                 boolean allowWalkAnimation,
                 int animationTick,
                 long now
@@ -274,7 +270,6 @@ final class FarPlayerRenderer {
             float headYaw = tracked.renderHeadYaw(now);
             float pitch = tracked.renderPitch(now);
 
-            this.maximumRenderDistanceBlocks = maximumRenderDistanceBlocks;
             this.tickCount = animationTick;
             this.setOldPosAndRot(position, bodyYaw, pitch);
             this.xo = position.x;
@@ -348,26 +343,20 @@ final class FarPlayerRenderer {
             PlayerInfo info = connection.getPlayerInfo(trackedUuid);
             return info != null ? info : super.getPlayerInfo();
         }
-
-        @Override
-        public boolean shouldRenderAtSqrDistance(double distanceSquared) {
-            double maxDistance = Math.max(64, maximumRenderDistanceBlocks);
-            return distanceSquared <= maxDistance * maxDistance;
-        }
     }
 
     private static ItemStack createItemStack(FarItemSnapshot snapshot) {
-        if (snapshot == null || snapshot.isEmpty()) {
+        if (snapshot.isEmpty()) {
             return ItemStack.EMPTY;
         }
-        try {
-            Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(snapshot.itemId()));
-            if (item == null || item == Items.AIR) {
-                return ItemStack.EMPTY;
-            }
-            return new ItemStack(item, Math.max(1, snapshot.count()));
-        } catch (Exception ignored) {
+        Identifier itemId = Identifier.tryParse(snapshot.itemId());
+        if (itemId == null) {
             return ItemStack.EMPTY;
         }
+        Item registeredItem = BuiltInRegistries.ITEM.getValue(itemId);
+        if (registeredItem == null || registeredItem == Items.AIR) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(registeredItem, snapshot.count());
     }
 }

@@ -32,7 +32,7 @@ final class PaperFarPlayerService {
         this.plugin = plugin;
     }
 
-    void handleHello(Player player, byte[] bytes) {
+    void acceptHello(Player player, byte[] bytes) {
         ByteBuf buf = Unpooled.wrappedBuffer(bytes);
         ClientHelloPacket packet = PacketCodec.decodeClientHello(buf);
         if (packet.protocolVersion() != SharedDefaults.PROTOCOL_VERSION) {
@@ -145,12 +145,12 @@ final class PaperFarPlayerService {
                         target.isSneaking(),
                         target.isGliding(),
                         target.isSwimming(),
-                        toItemSnapshot(equipment == null ? null : equipment.getItemInMainHand()),
-                        toItemSnapshot(equipment == null ? null : equipment.getItemInOffHand()),
-                        toItemSnapshot(equipment == null ? null : equipment.getBoots()),
-                        toItemSnapshot(equipment == null ? null : equipment.getLeggings()),
-                        toItemSnapshot(equipment == null ? null : equipment.getChestplate()),
-                        toItemSnapshot(equipment == null ? null : equipment.getHelmet()),
+                        toItemSnapshot(equipment.getItemInMainHand()),
+                        toItemSnapshot(equipment.getItemInOffHand()),
+                        toItemSnapshot(equipment.getBoots()),
+                        toItemSnapshot(equipment.getLeggings()),
+                        toItemSnapshot(equipment.getChestplate()),
+                        toItemSnapshot(equipment.getHelmet()),
                         toVehicleSnapshot(target.getVehicle())
                 ));
             }
@@ -179,7 +179,7 @@ final class PaperFarPlayerService {
     }
 
     private static FarItemSnapshot toItemSnapshot(ItemStack stack) {
-        if (stack == null || stack.getType().isAir() || stack.getAmount() <= 0) {
+        if (stack.getType().isAir() || stack.getAmount() <= 0) {
             return FarItemSnapshot.EMPTY;
         }
         return new FarItemSnapshot(stack.getType().getKey().toString(), stack.getAmount());

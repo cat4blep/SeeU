@@ -2,79 +2,50 @@
 
 Discuss on Discord -> https://discord.gg/fQqJsPmQrP
 
-## What It Does
+## SeeU
 
-- renders distant players outside vanilla entity range
-- keeps player pose, yaw, pitch and name
-- renders held items and armor on distant player proxies
-- renders ridden entities too, so a player in a boat appears in a boat instead of standing in air
-- works with a `Fabric` or `NeoForge` client and a `Paper`, `Fabric`, or `NeoForge` server sender
-- lets each player control whether other people can see their distant proxy and up to what distance
+SeeU renders players beyond vanilla's entity range. A `Paper`, `Fabric`, or `NeoForge` server sends lightweight snapshots to a `Fabric` or `NeoForge` client. Once vanilla stops rendering a player entity, the client replaces it with a remote-player proxy that retains:
 
-## How It Works
+- pose, yaw, pitch, and name
+- held items and armor
+- the ridden entity, such as a boat
 
-The server sends lightweight snapshots of players to clients with `SeeU`.
+Each player controls whether the server shares their proxy and how far it can be seen.
 
-Each client renders those snapshots as remote player proxies only when the real vanilla player entity is no longer being rendered normally. This gives a smooth handoff from vanilla entity rendering to distant proxy rendering.
-
-## Supported Setup
+## Requirements
 
 - Minecraft `26.2`
 - Java `25`
-- Fabric client or NeoForge client
-- `Voxy` optional on the client
-- Server side: `Paper` plugin, Fabric server mod, or NeoForge server mod
+- `Fabric` or `NeoForge` client
+- `Paper` plugin, Fabric server mod, or NeoForge server mod
 
-## How To Use
+Install matching current SeeU jars on the client and server, join the server, then move beyond vanilla's player-rendering range. `Voxy` and `Distant Horizons` are optional; they add distant terrain, while SeeU supplies the player proxies.
 
-1. Install the matching `SeeU` Fabric or NeoForge jar on the client.
-2. Install either the `Paper` plugin, Fabric server jar, or NeoForge server jar.
-3. Start the server and client with matching current jars.
-4. Join the server.
-5. Fly or move far enough for vanilla player rendering to end.
-6. `SeeU` will render the distant player proxy.
-7. If `Voxy` is installed, those proxies can also be seen on top of distant Voxy terrain.
-
-## In-Game Settings
+## Settings
 
 Open the settings GUI with `F8`.
 
-Available options:
+- enable distant-player rendering
+- set local render and animation distances
+- set the handoff distance from vanilla entities to proxies
+- show or hide distant-player name tags
+- allow or block sharing your proxy
+- limit how far other players can receive your proxy
 
-- enable or disable distant player rendering on your client
-- set your local maximum distant-player render distance
-- set the handoff distance where proxy rendering starts
-- enable or disable distant player name tags
-- allow or forbid the server from broadcasting your own distant proxy to other players
-- set the maximum distance at which other players are allowed to receive your proxy
+The client sends changes to the server without a reconnect.
 
-When you change these settings in the GUI, the client immediately sends them to the server. Reconnect is not required.
+## Config files
 
-## Config Files
+- Fabric client: `config/seeu-client.json`
+- Fabric server: `config/seeu-server.json`
+- NeoForge client and server: `config/seeu-client.json`, `config/seeu-server.json`
+- Paper: `plugins/SeeU/config.yml`
 
-Client:
+## Limits
 
-- `config/seeu-client.json`
-
-Fabric server:
-
-- `config/seeu-server.json`
-
-NeoForge client/server:
-
-- `config/seeu-client.json`
-- `config/seeu-server.json`
-
-Paper:
-
-- `plugins/SeeU/config.yml`
-
-## Notes
-
-- `SeeU` is for players only. It does not render all entities at long range.
-- The client and server/plugin should be updated together. The current protocol version is `3`.
-- If you only install the client mod without a matching server sender, there will be no distant player data to render.
-- `Voxy` or `Distant Horizons` is optional. Without it, `SeeU` still works, but you only get distant player proxies, not distant terrain.
+- SeeU renders players and their ridden entities, not every entity type.
+- Protocol version `4` requires matching client and server/plugin updates.
+- A client without a server sender receives no player snapshots.
 
 ## Build
 
@@ -82,8 +53,12 @@ Paper:
 ./gradlew build
 ```
 
-Built jars are written to:
+Gradle writes the jars to:
 
 - `fabric/build/libs/seeu-fabric-<version>.jar`
 - `neoforge/build/libs/seeu-neoforge-<version>.jar`
 - `paper/build/libs/seeu-paper-<version>.jar`
+
+## License
+
+See [LICENSE](LICENSE). The project uses `LicenseRef-SeeU-Restricted-1.0`.

@@ -1,7 +1,6 @@
-package dev.keryeshka.voxyseeu.neoforge.client;
+package dev.keryeshka.voxyseeu.common.client;
 
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
-import dev.keryeshka.voxyseeu.neoforge.client.config.VoxySeeUClientConfig;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -13,10 +12,10 @@ import net.minecraft.util.Mth;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
-final class SeeUConfigScreen extends Screen {
+public final class SeeUConfigScreen extends Screen {
     private final Screen parent;
-    private final VoxySeeUClientConfig draft;
-    private final Consumer<VoxySeeUClientConfig> onSave;
+    private final SeeUClientConfig draft;
+    private final Consumer<SeeUClientConfig> onSave;
 
     private DistanceSlider renderDistanceSlider;
     private DistanceSlider minDistanceSlider;
@@ -27,7 +26,7 @@ final class SeeUConfigScreen extends Screen {
     private Button fogToggleButton;
     private Button shareSelfButton;
 
-    SeeUConfigScreen(Screen parent, VoxySeeUClientConfig draft, Consumer<VoxySeeUClientConfig> onSave) {
+    public SeeUConfigScreen(Screen parent, SeeUClientConfig draft, Consumer<SeeUClientConfig> onSave) {
         super(Component.translatable("screen.seeu.title"));
         this.parent = parent;
         this.draft = draft;
@@ -117,8 +116,7 @@ final class SeeUConfigScreen extends Screen {
 
         int buttonY = y + rowHeight * 9;
         addRenderableWidget(Button.builder(CommonComponents.GUI_DONE, button -> {
-            draft.clamp();
-            onSave.accept(draft.copy());
+            onSave.accept(draft);
             onClose();
         }).bounds(x, buttonY, (contentWidth - 10) / 2, 20).build());
 
@@ -131,9 +129,7 @@ final class SeeUConfigScreen extends Screen {
 
     @Override
     public void onClose() {
-        if (minecraft != null) {
-            minecraft.gui.setScreen(parent);
-        }
+        minecraft.gui.setScreen(parent);
     }
 
     @Override

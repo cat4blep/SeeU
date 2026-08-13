@@ -2,20 +2,23 @@ package dev.keryeshka.voxyseeu.neoforge;
 
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
 import dev.keryeshka.voxyseeu.common.protocol.ProtocolConstants;
-import dev.keryeshka.voxyseeu.neoforge.config.VoxySeeUServerConfig;
+import dev.keryeshka.voxyseeu.common.server.SeeUServerConfig;
 import dev.keryeshka.voxyseeu.neoforge.network.ClientHelloPayload;
 import dev.keryeshka.voxyseeu.neoforge.network.FarPlayersPayload;
 import dev.keryeshka.voxyseeu.neoforge.server.NeoForgeFarPlayerService;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
 @Mod(ProtocolConstants.MOD_ID)
 public final class VoxySeeUNeoForge {
-    private final NeoForgeFarPlayerService service = new NeoForgeFarPlayerService(VoxySeeUServerConfig.load());
+    private final NeoForgeFarPlayerService service = new NeoForgeFarPlayerService(
+            SeeUServerConfig.load(FMLPaths.CONFIGDIR.get())
+    );
 
     public VoxySeeUNeoForge(IEventBus modEventBus) {
         modEventBus.addListener(this::registerPayloadHandlers);
@@ -30,7 +33,7 @@ public final class VoxySeeUNeoForge {
                 .optional();
 
         registrar.playToServer(ClientHelloPayload.TYPE, ClientHelloPayload.STREAM_CODEC, (payload, context) ->
-                context.enqueueWork(() -> service.handleHello((ServerPlayer) context.player(), payload.packet())));
+                context.enqueueWork(() -> service.acceptHello((ServerPlayer) context.player(), payload.packet())));
         registrar.playToClient(FarPlayersPayload.TYPE, FarPlayersPayload.STREAM_CODEC);
     }
 }

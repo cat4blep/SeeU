@@ -2,12 +2,16 @@ package dev.keryeshka.voxyseeu.fabric.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
+import dev.keryeshka.voxyseeu.common.client.FarPlayerRenderer;
+import dev.keryeshka.voxyseeu.common.client.FarPlayerTracker;
+import dev.keryeshka.voxyseeu.common.client.SeeUClientConfig;
+import dev.keryeshka.voxyseeu.common.client.SeeUConfigScreen;
 import dev.keryeshka.voxyseeu.common.protocol.ClientHelloPacket;
-import dev.keryeshka.voxyseeu.fabric.client.config.VoxySeeUClientConfig;
 import dev.keryeshka.voxyseeu.fabric.network.ClientHelloPayload;
 import dev.keryeshka.voxyseeu.fabric.network.FabricPayloads;
 import dev.keryeshka.voxyseeu.fabric.network.FarPlayersPayload;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
@@ -36,7 +40,7 @@ public final class VoxySeeUClient implements ClientModInitializer {
     );
 
     private final FarPlayerTracker tracker = new FarPlayerTracker();
-    private static VoxySeeUClientConfig config;
+    private static SeeUClientConfig config;
     private static FarPlayerRenderer renderer;
 
     @Override
@@ -44,7 +48,7 @@ public final class VoxySeeUClient implements ClientModInitializer {
         FabricPayloads.register();
         KeyMappingHelper.registerKeyMapping(OPEN_CONFIG_KEY);
 
-        config = VoxySeeUClientConfig.load();
+        config = SeeUClientConfig.load(FabricLoader.getInstance().getConfigDir());
         LOGGER.info(
                 "Loaded SeeU client config: enabled={}, maxDistance={}, minDistance={}, animationDistance={}, nameTags={}, disableVanillaFog={}, shareSelf={}, shareMaxDistance={}",
                 config.enabled,
@@ -83,7 +87,11 @@ public final class VoxySeeUClient implements ClientModInitializer {
                     }
                 }));
 
-        LevelRenderEvents.COLLECT_SUBMITS.register(renderer::render);
+        LevelRenderEvents.COLLECT_SUBMITS.register(context -> renderer.render(
+                context.poseStack(),
+                context.levelState(),
+                context.submitNodeCollector()
+        ));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (OPEN_CONFIG_KEY.consumeClick()) {
                 client.gui.setScreen(new SeeUConfigScreen(client.gui.screen(), config.copy(), VoxySeeUClient::applyConfig));
@@ -91,18 +99,14 @@ public final class VoxySeeUClient implements ClientModInitializer {
         });
     }
 
-    private static void applyConfig(VoxySeeUClientConfig updatedConfig) {
-        if (config == null) {
-            config = updatedConfig.copy();
-        } else {
-            config.copyFrom(updatedConfig);
-        }
+    private static void applyConfig(SeeUClientConfig updatedConfig) {
+        config.copyFrom(updatedConfig);
         config.save();
         sendHello();
     }
 
     public static boolean shouldDisableVanillaFog(Camera camera) {
-        if (config == null || !config.enabled || !config.disableVanillaFog || camera.getFluidInCamera() != FogType.NONE) {
+        if (!config.enabled || !config.disableVanillaFog || camera.getFluidInCamera() != FogType.NONE) {
             return false;
         }
         Entity entity = camera.entity();
@@ -112,7 +116,7 @@ public final class VoxySeeUClient implements ClientModInitializer {
 
     private static void sendHello() {
         Minecraft minecraft = Minecraft.getInstance();
-        if (config == null || minecraft.getConnection() == null) {
+        if (minecraft.getConnection() == null) {
             return;
         }
         ClientPlayNetworking.send(new ClientHelloPayload(new ClientHelloPacket(
@@ -120,7 +124,6 @@ public final class VoxySeeUClient implements ClientModInitializer {
                 config.enabled,
                 config.maximumRenderDistanceBlocks,
                 config.minimumProxyDistanceBlocks,
-                config.renderNameTags,
                 config.shareSelf,
                 config.shareMaximumDistanceBlocks
         )));

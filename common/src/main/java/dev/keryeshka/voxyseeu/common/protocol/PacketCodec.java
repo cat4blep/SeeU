@@ -16,7 +16,6 @@ public final class PacketCodec {
         buf.writeBoolean(packet.enabled());
         writeVarInt(buf, packet.maximumRenderDistanceBlocks());
         writeVarInt(buf, packet.minimumProxyDistanceBlocks());
-        buf.writeBoolean(packet.renderNameTags());
         buf.writeBoolean(packet.shareSelf());
         writeVarInt(buf, packet.shareMaximumDistanceBlocks());
     }
@@ -27,7 +26,6 @@ public final class PacketCodec {
                 buf.readBoolean(),
                 readVarInt(buf),
                 readVarInt(buf),
-                buf.readBoolean(),
                 buf.readBoolean(),
                 readVarInt(buf)
         );
@@ -92,10 +90,9 @@ public final class PacketCodec {
         return new FarPlayersPacket(dimensionKey, List.copyOf(players));
     }
 
-    private static void encodeItem(ByteBuf buf, FarItemSnapshot item) {
-        FarItemSnapshot snapshot = item == null ? FarItemSnapshot.EMPTY : item;
-        writeUtf(buf, snapshot.itemId());
-        writeVarInt(buf, snapshot.count());
+    private static void encodeItem(ByteBuf buf, FarItemSnapshot itemSnapshot) {
+        writeUtf(buf, itemSnapshot.itemId());
+        writeVarInt(buf, itemSnapshot.count());
     }
 
     private static FarItemSnapshot decodeItem(ByteBuf buf) {

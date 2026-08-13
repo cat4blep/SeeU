@@ -22,16 +22,4 @@ public record FarPlayerSnapshot(
         FarItemSnapshot head,
         FarVehicleSnapshot vehicle
 ) {
-    public FarPlayerSnapshot {
-        mainHand = sanitize(mainHand);
-        offHand = sanitize(offHand);
-        feet = sanitize(feet);
-        legs = sanitize(legs);
-        chest = sanitize(chest);
-        head = sanitize(head);
-    }
-
-    private static FarItemSnapshot sanitize(FarItemSnapshot snapshot) {
-        return snapshot == null ? FarItemSnapshot.EMPTY : snapshot;
-    }
 }

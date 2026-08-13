@@ -56,13 +56,15 @@ dependencies {
 }
 
 processResources {
-    inputs.property "version", project.version
-    inputs.property "minecraft_version", project.minecraft_version
+    def pluginVersion = project.version
+    def minecraftVersion = project.minecraft_version
+    inputs.property "version", pluginVersion
+    inputs.property "minecraft_version", minecraftVersion
 
     filesMatching("plugin.yml") {
         expand(
-                version: project.version,
-                minecraft_version: project.minecraft_version
+                version: pluginVersion,
+                minecraft_version: minecraftVersion
         )
     }
 }

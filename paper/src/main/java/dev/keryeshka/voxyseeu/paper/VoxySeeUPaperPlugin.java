@@ -51,7 +51,7 @@ public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessa
         if (!ProtocolConstants.HELLO_CHANNEL.equals(channel)) {
             return;
         }
-        service.handleHello(player, message);
+        service.acceptHello(player, message);
     }
 
     @EventHandler

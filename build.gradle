@@ -2,6 +2,12 @@ allprojects {
     group = project.maven_group
     version = project.mod_version
 
+    tasks.withType(Jar).configureEach {
+        from(rootProject.file("LICENSE")) {
+            into("META-INF")
+        }
+    }
+
     repositories {
         mavenCentral()
         maven { url = "https://maven.neoforged.net/releases" }

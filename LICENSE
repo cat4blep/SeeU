@@ -1,0 +1,152 @@
+SEEU RESTRICTED USE LICENSE
+Version 1.0, 13 August 2026
+License identifier: LicenseRef-SeeU-Restricted-1.0
+
+Copyright (c) 2026 cat4blep. All rights reserved.
+
+This License applies only to versions of SeeU that the Licensor expressly
+distributes with this License or identifies as licensed under it. Versions
+previously released under another license remain governed by that license.
+This License does not withdraw permissions already granted for those versions.
+
+1. Definitions
+
+"Software" means the SeeU source code, executable files, assets, and
+documentation supplied with a version covered by this License, but only to the
+extent that the Licensor owns or controls the rights in them. Software does not
+include third-party components governed by separate licenses.
+
+"Licensor" means the copyright holder identified above.
+
+"Official Build" means an executable JAR that the Licensor publishes through
+an official SeeU distribution page controlled by the Licensor, including the
+official GitHub, Modrinth, or CurseForge project page, and expressly releases
+under this License.
+
+"Pack" means a Minecraft modpack, plugin pack, server pack, or launcher package
+that contains the Software together with other mods, plugins, or configuration
+and is not primarily a substitute for a standalone SeeU download or mirror.
+
+"Prior Written Permission" means explicit permission from the Licensor in a
+signed document, email, or message sent from an account controlled by the
+Licensor. The permission must identify its recipient and the permitted activity.
+Silence does not constitute permission.
+
+2. Permission to use and include Official Builds
+
+Subject to this License, the Licensor grants you a non-exclusive, worldwide,
+royalty-free license to:
+
+(a) download, install, and run unmodified Official Builds on Minecraft clients
+and on private or public Minecraft servers, including commercial or monetized
+servers;
+
+(b) make reasonable copies of an Official Build for your own installation and
+backup;
+
+(c) include and redistribute an exact, unmodified Official Build as part of a
+Pack, including a Pack published through a public modpack platform;
+
+(d) reference an Official Build in a Pack manifest so that a platform or
+installer downloads it from an official distribution page; and
+
+(e) create, change, and distribute separate configuration files that the
+Software is designed to read. Changing settings in such files does not count as
+modifying the Software.
+
+These permissions do not authorize the sale, licensing, or standalone
+distribution of the Software.
+
+3. Conditions for Packs
+
+Every Pack that includes or delivers the Software must satisfy all of these
+conditions:
+
+(a) It must use the byte-for-byte contents of an Official Build. It must not
+patch, repackage, obfuscate, optimize, or otherwise alter the Official Build.
+
+(b) Its description or accompanying notices must identify SeeU and cat4blep,
+link to https://github.com/cat4blep/SeeU, and include this License or a link to
+it.
+
+(c) It must not claim authorship of SeeU or imply endorsement by the Licensor.
+
+(d) It must not charge a separate fee for SeeU or use the Pack permission to
+operate a standalone download, mirror, or substitute distribution of SeeU.
+
+(e) It must comply with the terms of Minecraft, the distribution platform, and
+all third-party components.
+
+A manifest that downloads an Official Build from an official distribution page
+is permitted and preferred. Direct bundling of the exact Official Build is also
+permitted under this section.
+
+4. Restrictions
+
+Unless Section 2 permits the activity or the Licensor gives Prior Written
+Permission, you may not:
+
+(a) modify, patch, translate, adapt, port, repackage, merge, or create a
+derivative work from any part of the Software;
+
+(b) compile or build the source code, or publish or distribute a build created
+from the source code;
+
+(c) copy, publish, distribute, sublicense, sell, rent, lend, mirror, host, or
+otherwise make available the source code, a modified build, an unofficial
+build, or the Software on a standalone basis;
+
+(d) use any part of the source code or assets in another project;
+
+(e) reverse engineer, decompile, or disassemble the Software, except to the
+extent that applicable law gives you a right that this License cannot restrict;
+or
+
+(f) remove or alter a copyright, authorship, trademark, attribution, or license
+notice.
+
+The Licensor grants no rights by implication. The Licensor reserves every right
+not granted in this License.
+
+5. Public GitHub repository
+
+GitHub's Terms of Service may grant GitHub and its users limited rights to view,
+host, and fork content made available in a public GitHub repository. Those
+platform rights apply only to the extent required by GitHub's Terms of Service.
+They do not grant permission to modify the Software, distribute it outside the
+permitted scope, publish modified builds, or use it in another project.
+
+6. Ownership and third-party rights
+
+The Licensor licenses the Software and does not sell it. The Licensor retains
+all right, title, and interest in the Software. Third-party components remain
+subject to their own licenses. This License does not reduce rights that a
+third-party license grants directly to you. This License grants no trademark
+rights.
+
+7. Termination
+
+This License terminates automatically if you breach it. Upon termination, you
+must stop using and distributing the Software and delete all copies in your
+possession or control, except where applicable law requires retention. Sections
+6, 8, 9, and 10 survive termination.
+
+8. Disclaimer of warranty
+
+THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+PURPOSE, TITLE, AND NON-INFRINGEMENT. YOU USE THE SOFTWARE AT YOUR OWN RISK.
+
+9. Limitation of liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE LICENSOR SHALL NOT BE LIABLE FOR ANY
+CLAIM, LOSS, OR DAMAGES ARISING FROM OR RELATED TO THE SOFTWARE OR ITS USE,
+WHETHER IN CONTRACT, TORT, OR OTHERWISE.
+
+10. Severability and acceptance
+
+If a court holds a provision unenforceable, that provision shall be limited to
+the minimum extent necessary, and the remaining provisions shall remain in
+effect. A failure to enforce a provision does not waive it.
+
+By exercising any permission granted by this License, you accept its terms.

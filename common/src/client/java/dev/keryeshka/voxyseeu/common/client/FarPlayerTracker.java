@@ -1,27 +1,27 @@
-package dev.keryeshka.voxyseeu.neoforge.client;
+package dev.keryeshka.voxyseeu.common.client;
 
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayerSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayersPacket;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
-final class FarPlayerTracker {
-    private final Map<UUID, TrackedFarPlayer> trackedPlayers = new ConcurrentHashMap<>();
-    private volatile String dimensionKey = "";
-    private volatile int generation;
-    private volatile boolean receivedPacket;
+public final class FarPlayerTracker {
+    private final Map<UUID, TrackedFarPlayer> trackedPlayers = new HashMap<>();
+    private String dimensionKey = "";
+    private int generation;
+    private boolean receivedPacket;
 
-    void clear() {
+    public void clear() {
         trackedPlayers.clear();
         dimensionKey = "";
         generation = 0;
         receivedPacket = false;
     }
 
-    void apply(FarPlayersPacket packet) {
+    public void apply(FarPlayersPacket packet) {
         int nextGeneration = generation + 1;
         generation = nextGeneration;
         dimensionKey = packet.dimensionKey();
@@ -48,7 +48,7 @@ final class FarPlayerTracker {
         return trackedPlayers.values();
     }
 
-    boolean hasReceivedPacket() {
+    public boolean hasReceivedPacket() {
         return receivedPacket;
     }
 }

@@ -1,4 +1,4 @@
-package dev.keryeshka.voxyseeu.fabric.client;
+package dev.keryeshka.voxyseeu.common.client;
 
 import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayerSnapshot;

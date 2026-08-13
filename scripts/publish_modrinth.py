@@ -1,9 +1,4 @@
 #!/usr/bin/env python3
-"""Publish built SeeU artifacts to Modrinth.
-
-This script intentionally uses only Python's standard library so it can run
-locally and in GitHub Actions without installing dependencies.
-"""
 
 from __future__ import annotations
 
@@ -20,6 +15,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 import uuid
+from collections.abc import Collection
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -57,7 +53,7 @@ class Artifact:
     loader: str
     loader_display: str
     environment: str
-    path: Path
+    file_path: Path
     sha512: str
 
 
@@ -273,7 +269,17 @@ def parse_required_java_version(props: dict[str, str]) -> int:
 
 
 def java_feature_version(java_home: Path | None, env: dict[str, str]) -> int | None:
-    java_executable = java_binary(java_home)
+    executable_name = "java.exe" if os.name == "nt" else "java"
+    if java_home is None:
+        path_key = "Path" if os.name == "nt" else "PATH"
+        java_executable = shutil.which(executable_name, path=env.get(path_key))
+        if java_executable is None:
+            return None
+    else:
+        java_executable = java_home / "bin" / executable_name
+        if not java_executable.is_file() or not os.access(java_executable, os.X_OK):
+            return None
+
     try:
         completed = subprocess.run(
             [str(java_executable), "-version"],
@@ -296,13 +302,6 @@ def java_feature_version(java_home: Path | None, env: dict[str, str]) -> int | N
     return major
 
 
-def java_binary(java_home: Path | None) -> Path | str:
-    executable = "java.exe" if os.name == "nt" else "java"
-    if java_home is None:
-        return executable
-    return java_home / "bin" / executable
-
-
 def select_java_home(required: int, override: str | None, env: dict[str, str]) -> Path | None:
     candidates = java_home_candidates(required, override, env)
     usable: list[tuple[int, Path]] = []
@@ -312,7 +311,12 @@ def select_java_home(required: int, override: str | None, env: dict[str, str]) -
             usable.append((version, candidate))
     if not usable:
         return None
-    usable.sort(key=lambda item: (item[0] != required, item[0]))
+    usable.sort(
+        key=lambda version_and_home: (
+            version_and_home[0] != required,
+            version_and_home[0],
+        )
+    )
     return usable[0][1]
 
 
@@ -351,19 +355,19 @@ def java_home_candidates(required: int, override: str | None, env: dict[str, str
 
     seen: set[Path] = set()
     candidates: list[Path] = []
-    for raw in raw_candidates:
-        path = Path(raw).expanduser()
-        if not path.exists() or path in seen:
+    for configured_home in raw_candidates:
+        candidate_home = Path(configured_home).expanduser()
+        if not candidate_home.exists() or candidate_home in seen:
             continue
-        seen.add(path)
-        candidates.append(path)
+        seen.add(candidate_home)
+        candidates.append(candidate_home)
     return candidates
 
 
 def sha512(path: Path) -> str:
     digest = hashlib.sha512()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+    with path.open("rb") as artifact_file:
+        for chunk in iter(lambda: artifact_file.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
 
@@ -381,8 +385,8 @@ def is_publishable_jar(path: Path) -> bool:
 def discover_artifacts(modules: list[str]) -> list[Artifact]:
     artifacts: list[Artifact] = []
     for module in modules:
-        config = PUBLISHABLE_MODULES[module]
-        libs_dir = config["libs"]
+        module_settings = PUBLISHABLE_MODULES[module]
+        libs_dir = module_settings["libs"]
         jars = sorted(path for path in libs_dir.glob("*.jar") if is_publishable_jar(path))
         if not jars:
             raise ModrinthError(f"No publishable jar found in {libs_dir}. Run with --build first.")
@@ -391,15 +395,15 @@ def discover_artifacts(modules: list[str]) -> list[Artifact]:
             raise ModrinthError(
                 f"Multiple publishable jars found for {module}; run with --build/clean or remove old jars:\n  {jar_list}"
             )
-        path = jars[0]
+        jar_path = jars[0]
         artifacts.append(
             Artifact(
                 module=module,
-                loader=str(config["loader"]),
-                loader_display=str(config["display"]),
-                environment=str(config["environment"]),
-                path=path,
-                sha512=sha512(path),
+                loader=str(module_settings["loader"]),
+                loader_display=str(module_settings["display"]),
+                environment=str(module_settings["environment"]),
+                file_path=jar_path,
+                sha512=sha512(jar_path),
             )
         )
     return artifacts
@@ -411,8 +415,8 @@ def read_changelog(args: argparse.Namespace, props: dict[str, str]) -> str:
     if args.changelog:
         return str(args.changelog).strip()
 
-    commit = run_git(["rev-parse", "--short", "HEAD"], fallback="unknown")
-    branch = run_git(["branch", "--show-current"], fallback="unknown")
+    commit = run_git(["rev-parse", "--short", "HEAD"])
+    branch = run_git(["rev-parse", "--abbrev-ref", "HEAD"])
     return (
         f"Automated SeeU build for Minecraft {props['minecraft_version']}.\n\n"
         f"- Branch: `{branch}`\n"
@@ -420,20 +424,16 @@ def read_changelog(args: argparse.Namespace, props: dict[str, str]) -> str:
     )
 
 
-def run_git(args: list[str], fallback: str) -> str:
-    try:
-        completed = subprocess.run(
-            ["git", *args],
-            cwd=ROOT,
-            check=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
-            text=True,
-        )
-    except (FileNotFoundError, subprocess.CalledProcessError):
-        return fallback
-    value = completed.stdout.strip()
-    return value if value else fallback
+def run_git(git_args: list[str]) -> str:
+    completed = subprocess.run(
+        ["git", *git_args],
+        cwd=ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    return completed.stdout.strip()
 
 
 def ensure_clean_worktree() -> None:
@@ -453,51 +453,25 @@ def ensure_clean_worktree() -> None:
         )
 
 
-def switch_branch(branch: str) -> None:
-    print(f"\n=== Switching to {branch} ===", flush=True)
-    subprocess.run(["git", "switch", branch], cwd=ROOT, check=True)
-
-
 def resolve_project_reference(args: argparse.Namespace) -> None:
     encoded_project = urllib.parse.quote(args.project_id)
     url = f"{args.api_base.rstrip('/')}/project/{encoded_project}"
-    status, payload = request_json(
+    _, project = request_json(
         "GET",
         url,
         modrinth_headers(args, authenticated=bool(args.token)),
         ok_statuses={200},
     )
-    if status != 200 or not isinstance(payload, dict):
+    if not isinstance(project, dict):
         raise ModrinthError(f"Could not resolve Modrinth project {args.project_id}.")
 
-    project_id = payload.get("id")
-    slug = payload.get("slug")
-    title = payload.get("title")
-    args._project_loaders = set(payload.get("loaders", []))
+    project_id = project.get("id")
     if not project_id:
-        raise ModrinthError(f"Modrinth project response for {args.project_id} did not include an id.")
+        raise ModrinthError(f"Modrinth project payload for {args.project_id} did not include an id.")
 
     if args.project_id != project_id:
-        label = title or slug or args.project_id
-        print(f"Resolved Modrinth project {args.project_id} -> {project_id} ({label}).")
+        print(f"Resolved Modrinth project {args.project_id} -> {project_id}.")
         args.project_id = project_id
-
-
-def warn_if_loader_is_not_enabled(args: argparse.Namespace, artifact: Artifact) -> None:
-    project_loaders = getattr(args, "_project_loaders", set())
-    if not project_loaders or artifact.loader in project_loaders:
-        return
-
-    warned = getattr(args, "_warned_missing_loaders", set())
-    if artifact.loader in warned:
-        return
-
-    print(
-        f"Warning: Modrinth project loaders do not currently include '{artifact.loader}'. "
-        "If this upload fails, add that loader in the project settings and rerun."
-    )
-    warned.add(artifact.loader)
-    args._warned_missing_loaders = warned
 
 
 def dependency_list(args: argparse.Namespace, loader: str) -> list[dict[str, str]]:
@@ -543,7 +517,7 @@ def format_metadata(
         "loader": artifact.loader,
         "loader_display": artifact.loader_display,
         "module": artifact.module,
-        "file_name": artifact.path.name,
+        "file_name": artifact.file_path.name,
     }
     version_number = args.number_template.format(**context) + args.version_suffix
     return {
@@ -568,26 +542,24 @@ def request_json(
     url: str,
     headers: dict[str, str],
     body: bytes | None = None,
-    ok_statuses: set[int] | None = None,
+    ok_statuses: Collection[int] = (200, 201, 204),
 ) -> tuple[int, Any]:
-    if ok_statuses is None:
-        ok_statuses = {200, 201, 204}
-    request = urllib.request.Request(url, data=body, headers=headers, method=method)
+    http_request = urllib.request.Request(url, data=body, headers=headers, method=method)
     try:
-        with urllib.request.urlopen(request) as response:
-            raw = response.read()
-            payload = json.loads(raw.decode("utf-8")) if raw else None
-            return response.status, payload
+        with urllib.request.urlopen(http_request) as http_response:
+            response_body = http_response.read()
+            parsed_body = json.loads(response_body.decode("utf-8")) if response_body else None
+            return http_response.status, parsed_body
     except urllib.error.HTTPError as error:
-        raw = error.read()
+        error_body = error.read()
         try:
-            payload = json.loads(raw.decode("utf-8")) if raw else None
+            parsed_body = json.loads(error_body.decode("utf-8")) if error_body else None
         except json.JSONDecodeError:
-            payload = raw.decode("utf-8", errors="replace")
+            parsed_body = error_body.decode("utf-8", errors="replace")
         if error.code in ok_statuses:
-            return error.code, payload
+            return error.code, parsed_body
         if error.code == 401:
-            detail = payload.get("description", payload) if isinstance(payload, dict) else payload
+            detail = parsed_body.get("description", parsed_body) if isinstance(parsed_body, dict) else parsed_body
             raise ModrinthError(
                 "Modrinth rejected authorization (HTTP 401): "
                 f"{detail}\n"
@@ -595,7 +567,7 @@ def request_json(
                 "has the VERSION_CREATE scope, and belongs to a user with permission "
                 "to upload versions to MODRINTH_PROJECT_ID."
             ) from error
-        raise ModrinthError(f"{method} {url} failed with HTTP {error.code}: {payload}") from error
+        raise ModrinthError(f"{method} {url} failed with HTTP {error.code}: {parsed_body}") from error
 
 
 def modrinth_headers(args: argparse.Namespace, authenticated: bool) -> dict[str, str]:
@@ -611,7 +583,7 @@ def modrinth_headers(args: argparse.Namespace, authenticated: bool) -> dict[str,
 def check_file_exists(args: argparse.Namespace, artifact: Artifact) -> bool:
     encoded_hash = urllib.parse.quote(artifact.sha512)
     url = f"{args.api_base.rstrip('/')}/version_file/{encoded_hash}?algorithm=sha512"
-    status, payload = request_json(
+    status, existing_file = request_json(
         "GET",
         url,
         modrinth_headers(args, authenticated=True),
@@ -619,15 +591,17 @@ def check_file_exists(args: argparse.Namespace, artifact: Artifact) -> bool:
     )
     if status == 404:
         return False
-    version_number = payload.get("version_number", "unknown") if isinstance(payload, dict) else "unknown"
-    print(f"Skipping {artifact.path.name}: file hash already exists on Modrinth as {version_number}.")
+    if not isinstance(existing_file, dict) or not existing_file.get("version_number"):
+        raise ModrinthError(f"Unexpected Modrinth version-file payload for {artifact.file_path.name}.")
+    version_number = existing_file["version_number"]
+    print(f"Skipping {artifact.file_path.name}: file hash already exists on Modrinth as {version_number}.")
     return True
 
 
 def existing_version_numbers(args: argparse.Namespace) -> set[str]:
     encoded_project = urllib.parse.quote(args.project_id)
     url = f"{args.api_base.rstrip('/')}/project/{encoded_project}/version"
-    status, payload = request_json(
+    status, versions = request_json(
         "GET",
         url,
         modrinth_headers(args, authenticated=True),
@@ -635,11 +609,11 @@ def existing_version_numbers(args: argparse.Namespace) -> set[str]:
     )
     if status == 404:
         return set()
-    if not isinstance(payload, list):
-        return set()
+    if not isinstance(versions, list):
+        raise ModrinthError("Unexpected Modrinth project versions payload.")
     return {
         str(version.get("version_number"))
-        for version in payload
+        for version in versions
         if isinstance(version, dict) and version.get("version_number")
     }
 
@@ -654,7 +628,7 @@ def should_skip_existing_version(
         return False
 
     message = (
-        f"Skipping {artifact.path.name}: version_number {version_number} already exists on Modrinth. "
+        f"Skipping {artifact.file_path.name}: version_number {version_number} already exists on Modrinth. "
         "Use --version-suffix if this is a different build that must be uploaded separately."
     )
     if args.fail_on_existing_version:
@@ -663,43 +637,43 @@ def should_skip_existing_version(
     return True
 
 
-def encode_multipart(data: dict[str, Any], file_path: Path) -> tuple[bytes, str]:
+def encode_multipart(metadata: dict[str, Any], file_path: Path) -> tuple[bytes, str]:
     boundary = f"----seeu-modrinth-{uuid.uuid4().hex}"
-    lines: list[bytes] = []
-
-    def add(value: str | bytes) -> None:
-        if isinstance(value, str):
-            lines.append(value.encode("utf-8"))
-        else:
-            lines.append(value)
-
-    add(f"--{boundary}\r\n")
-    add('Content-Disposition: form-data; name="data"\r\n')
-    add("Content-Type: application/json; charset=utf-8\r\n\r\n")
-    add(json.dumps(data, ensure_ascii=False, separators=(",", ":")))
-    add("\r\n")
-
     mime_type = mimetypes.guess_type(file_path.name)[0] or "application/java-archive"
-    add(f"--{boundary}\r\n")
-    add(f'Content-Disposition: form-data; name="file"; filename="{file_path.name}"\r\n')
-    add(f"Content-Type: {mime_type}\r\n\r\n")
-    add(file_path.read_bytes())
-    add("\r\n")
-    add(f"--{boundary}--\r\n")
+    metadata_json = json.dumps(metadata, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    multipart_body = b"".join(
+        (
+            f"--{boundary}\r\n".encode("utf-8"),
+            b'Content-Disposition: form-data; name="data"\r\n',
+            b"Content-Type: application/json; charset=utf-8\r\n\r\n",
+            metadata_json,
+            b"\r\n",
+            f"--{boundary}\r\n".encode("utf-8"),
+            (
+                f'Content-Disposition: form-data; name="file"; '
+                f'filename="{file_path.name}"\r\n'
+            ).encode("utf-8"),
+            f"Content-Type: {mime_type}\r\n\r\n".encode("utf-8"),
+            file_path.read_bytes(),
+            b"\r\n",
+            f"--{boundary}--\r\n".encode("utf-8"),
+        )
+    )
+    return multipart_body, boundary
 
-    return b"".join(lines), boundary
 
-
-def publish_version(args: argparse.Namespace, data: dict[str, Any], artifact: Artifact) -> dict[str, Any]:
-    body, boundary = encode_multipart(data, artifact.path)
+def publish_version(args: argparse.Namespace, metadata: dict[str, Any], artifact: Artifact) -> dict[str, Any]:
+    body, boundary = encode_multipart(metadata, artifact.file_path)
     headers = modrinth_headers(args, authenticated=True)
     headers["Content-Type"] = f"multipart/form-data; boundary={boundary}"
     headers["Content-Length"] = str(len(body))
     url = f"{args.api_base.rstrip('/')}/version"
-    _, payload = request_json("POST", url, headers, body=body)
-    if not isinstance(payload, dict):
-        raise ModrinthError(f"Unexpected Modrinth response for {artifact.path.name}: {payload}")
-    return payload
+    _, created_version = request_json("POST", url, headers, body=body)
+    if not isinstance(created_version, dict):
+        raise ModrinthError(
+            f"Unexpected Modrinth payload for {artifact.file_path.name}: {created_version}"
+        )
+    return created_version
 
 
 def validate_args(args: argparse.Namespace) -> None:
@@ -722,7 +696,7 @@ def publish_current_branch(args: argparse.Namespace, existing_numbers: set[str])
         if key not in props:
             raise ModrinthError(f"Missing {key} in gradle.properties.")
 
-    branch = run_git(["branch", "--show-current"], fallback="unknown")
+    branch = run_git(["rev-parse", "--abbrev-ref", "HEAD"])
     print(f"\n=== Publishing branch {branch} for Minecraft {props['minecraft_version']} ===")
 
     if args.build:
@@ -732,16 +706,14 @@ def publish_current_branch(args: argparse.Namespace, existing_numbers: set[str])
     artifacts = discover_artifacts(args.only)
 
     for artifact in artifacts:
-        data = format_metadata(args, props, artifact, changelog)
-        print(f"\n{artifact.loader_display}: {artifact.path.name}")
-        print(f"  version_number: {data['version_number']}")
+        metadata = format_metadata(args, props, artifact, changelog)
+        print(f"\n{artifact.loader_display}: {artifact.file_path.name}")
+        print(f"  version_number: {metadata['version_number']}")
         print(f"  sha512: {artifact.sha512}")
 
         if args.dry_run:
-            print(json.dumps(data, indent=2, ensure_ascii=False))
+            print(json.dumps(metadata, indent=2, ensure_ascii=False))
             continue
-
-        warn_if_loader_is_not_enabled(args, artifact)
 
         if not args.skip_existing_check and check_file_exists(args, artifact):
             continue
@@ -749,28 +721,33 @@ def publish_current_branch(args: argparse.Namespace, existing_numbers: set[str])
         if not args.skip_existing_check and should_skip_existing_version(
             args,
             artifact,
-            data["version_number"],
+            metadata["version_number"],
             existing_numbers,
         ):
             continue
 
-        response = publish_version(args, data, artifact)
-        print(f"  published: {response.get('id')} ({response.get('version_number')})")
-        existing_numbers.add(data["version_number"])
+        created_version = publish_version(args, metadata, artifact)
+        print(
+            f"  published: {created_version.get('id')} "
+            f"({created_version.get('version_number')})"
+        )
+        existing_numbers.add(metadata["version_number"])
 
 
 def publish_all_branches(args: argparse.Namespace, existing_numbers: set[str]) -> None:
     ensure_clean_worktree()
     branches = args.branches or list(DEFAULT_BRANCHES)
-    original_branch = run_git(["branch", "--show-current"], fallback="")
+    original_branch = run_git(["symbolic-ref", "--short", "HEAD"])
 
     try:
         for branch in branches:
-            switch_branch(branch)
+            print(f"\n=== Switching to {branch} ===", flush=True)
+            subprocess.run(["git", "switch", branch], cwd=ROOT, check=True)
             publish_current_branch(args, existing_numbers)
     finally:
-        if original_branch and not args.keep_branch:
-            switch_branch(original_branch)
+        if not args.keep_branch:
+            print(f"\n=== Switching to {original_branch} ===", flush=True)
+            subprocess.run(["git", "switch", original_branch], cwd=ROOT, check=True)
 
 
 def main() -> int:
