@@ -9,6 +9,13 @@ base {
 
 repositories {
     maven {
+        name = "Terraformers"
+        url = "https://maven.terraformersmc.com/"
+        content {
+            includeGroup "com.terraformersmc"
+        }
+    }
+    maven {
         url = "https://api.modrinth.com/maven"
         content {
             includeGroup "maven.modrinth"
@@ -57,6 +64,7 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     clientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     clientImplementation "net.fabricmc.fabric-api:fabric-rendering-v1:${project.fabric_rendering_api_version}"
+    clientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
     compileOnly "maven.modrinth:vanish:1.6.15+26.2"
 
     implementation project(":common")
