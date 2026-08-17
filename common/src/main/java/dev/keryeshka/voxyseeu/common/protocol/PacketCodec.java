@@ -157,7 +157,7 @@ public final class PacketCodec {
 
         while (true) {
             if (position >= 35) {
-                throw new IllegalArgumentException("VarInt is too big");
+                throw new IllegalArgumentException("VarInt exceeds the 5-byte limit");
             }
 
             byte current = buf.readByte();

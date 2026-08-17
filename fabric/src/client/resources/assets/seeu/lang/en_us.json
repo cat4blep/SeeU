@@ -1,5 +1,5 @@
 {
-  "category.seeu": "SeeU",
+  "key.category.seeu.general": "SeeU",
   "key.seeu.open_config": "Open SeeU settings",
   "screen.seeu.title": "SeeU Settings",
   "screen.seeu.render_enabled": "Render distant players: %s",
@@ -8,6 +8,6 @@
   "screen.seeu.walk_animation_distance": "Walk animation distance: %s blocks",
   "screen.seeu.name_tags": "Render name tags: %s",
   "screen.seeu.disable_vanilla_fog": "Disable vanilla fog: %s",
-  "screen.seeu.share_self": "Share my proxy with others: %s",
-  "screen.seeu.share_distance": "Max distance others can see me: %s blocks"
+  "screen.seeu.share_self": "Share my proxy with other players: %s",
+  "screen.seeu.share_distance": "Other players see my proxy within %s blocks"
 }

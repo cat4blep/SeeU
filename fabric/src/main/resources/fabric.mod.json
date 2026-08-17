@@ -4,7 +4,7 @@
   "version": "${version}",
   "name": "SeeU",
   "icon": "assets/seeu/icon.png",
-  "description": "Makes distant players visible far beyond vanilla entity tracking.",
+  "description": "SeeU renders players beyond the vanilla entity-tracking range.",
   "authors": [
     "Keryesh4ka"
   ],
@@ -16,6 +16,9 @@
     ],
     "client": [
       "dev.keryeshka.voxyseeu.fabric.client.VoxySeeUClient"
+    ],
+    "modmenu": [
+      "dev.keryeshka.voxyseeu.fabric.client.SeeUModMenuIntegration"
     ]
   },
   "mixins": [

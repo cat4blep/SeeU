@@ -1,16 +1,16 @@
 ![SeeU banner](docs/banner.png)
 
-Discuss on Discord -> https://discord.gg/fQqJsPmQrP
+Discuss SeeU on [Discord](https://discord.gg/fQqJsPmQrP).
 
 ## SeeU
 
-SeeU renders players beyond vanilla's entity range. A `Paper`, `Fabric`, or `NeoForge` server sends lightweight snapshots to a `Fabric` or `NeoForge` client. Once vanilla stops rendering a player entity, the client replaces it with a remote-player proxy that retains:
+SeeU renders players beyond vanilla's entity-tracking range. A `Paper`, `Fabric`, or `NeoForge` server sends player snapshots to a `Fabric` or `NeoForge` client. After vanilla stops rendering a player, the client replaces that entity with a remote-player proxy that retains:
 
 - pose, yaw, pitch, and name
 - held items and armor
 - the ridden entity, such as a boat
 
-Each player controls whether the server shares their proxy and how far it can be seen.
+Each player controls whether the server shares their proxy and the proxy's maximum viewing distance.
 
 ## Requirements
 
@@ -19,11 +19,11 @@ Each player controls whether the server shares their proxy and how far it can be
 - `Fabric` or `NeoForge` client
 - `Paper` plugin, Fabric server mod, or NeoForge server mod
 
-Install matching current SeeU jars on the client and server, join the server, then move beyond vanilla's player-rendering range. `Voxy` and `Distant Horizons` are optional; they add distant terrain, while SeeU supplies the player proxies.
+Install the matching client and server JARs from the same SeeU release. Join the server, then move beyond vanilla's player-rendering range. `Voxy` and `Distant Horizons` are optional terrain mods; SeeU renders the player proxies.
 
 ## Settings
 
-Open the settings GUI with `F8`.
+`F8` is the default settings key. Remap it under **Options > Controls > Key Binds**. On Fabric, Mod Menu adds a **Configure** button to the SeeU entry. On NeoForge, open **Mods > SeeU > Config**.
 
 - enable distant-player rendering
 - set local render and animation distances
@@ -43,7 +43,7 @@ The client sends changes to the server without a reconnect.
 
 ## Limits
 
-- SeeU renders players and their ridden entities, not every entity type.
+- SeeU creates proxies for players and their ridden entities.
 - Protocol version `4` requires matching client and server/plugin updates.
 - A client without a server sender receives no player snapshots.
 
@@ -53,7 +53,7 @@ The client sends changes to the server without a reconnect.
 ./gradlew build
 ```
 
-Gradle writes the jars to:
+Gradle writes the JARs to:
 
 - `fabric/build/libs/seeu-fabric-<version>.jar`
 - `neoforge/build/libs/seeu-neoforge-<version>.jar`
