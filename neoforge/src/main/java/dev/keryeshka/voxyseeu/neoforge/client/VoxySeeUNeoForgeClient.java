@@ -11,28 +11,32 @@ import dev.keryeshka.voxyseeu.neoforge.network.ClientHelloPayload;
 import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.material.FogType;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.common.Mod;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.network.PacketDistributor;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Mod(value = ProtocolConstants.MOD_ID, dist = Dist.CLIENT)
 @EventBusSubscriber(modid = ProtocolConstants.MOD_ID, value = Dist.CLIENT)
 public final class VoxySeeUNeoForgeClient {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
-    private static final String SEEU_KEY_CATEGORY = ResourceLocation.parse("seeu:general").toString();
+    private static final String SEEU_KEY_CATEGORY = "key.categories.seeu.general";
     private static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
             "key.seeu.open_config",
             InputConstants.Type.KEYSYM,
@@ -44,7 +48,11 @@ public final class VoxySeeUNeoForgeClient {
     private static VoxySeeUClientConfig config;
     private static FarPlayerRenderer renderer;
 
-    private VoxySeeUNeoForgeClient() {
+    public VoxySeeUNeoForgeClient(ModContainer container) {
+        container.registerExtensionPoint(
+                IConfigScreenFactory.class,
+                (ignored, parent) -> createConfigScreen(parent)
+        );
     }
 
     @SubscribeEvent
@@ -74,8 +82,13 @@ public final class VoxySeeUNeoForgeClient {
         ensureLoaded();
         Minecraft minecraft = Minecraft.getInstance();
         while (OPEN_CONFIG_KEY.consumeClick()) {
-            minecraft.setScreen(new SeeUConfigScreen(minecraft.screen, config.copy(), VoxySeeUNeoForgeClient::applyConfig));
+            minecraft.setScreen(createConfigScreen(minecraft.screen));
         }
+    }
+
+    static Screen createConfigScreen(Screen parent) {
+        ensureLoaded();
+        return new SeeUConfigScreen(parent, config.copy(), VoxySeeUNeoForgeClient::applyConfig);
     }
 
     @SubscribeEvent

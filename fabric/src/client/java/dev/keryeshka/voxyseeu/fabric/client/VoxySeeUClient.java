@@ -16,7 +16,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -27,7 +27,7 @@ import org.lwjgl.glfw.GLFW;
 
 public final class VoxySeeUClient implements ClientModInitializer {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
-    private static final String SEEU_KEY_CATEGORY = ResourceLocation.parse("seeu:general").toString();
+    private static final String SEEU_KEY_CATEGORY = "key.categories.seeu.general";
     private static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
             "key.seeu.open_config",
             InputConstants.Type.KEYSYM,
@@ -86,9 +86,13 @@ public final class VoxySeeUClient implements ClientModInitializer {
         WorldRenderEvents.AFTER_ENTITIES.register(renderer::render);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (OPEN_CONFIG_KEY.consumeClick()) {
-                client.setScreen(new SeeUConfigScreen(client.screen, config.copy(), VoxySeeUClient::applyConfig));
+                client.setScreen(createConfigScreen(client.screen));
             }
         });
+    }
+
+    static Screen createConfigScreen(Screen parent) {
+        return new SeeUConfigScreen(parent, config.copy(), VoxySeeUClient::applyConfig);
     }
 
     private static void applyConfig(VoxySeeUClientConfig updatedConfig) {

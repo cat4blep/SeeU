@@ -43,7 +43,7 @@ jobs:
       - name: Build
         run: ./gradlew --no-daemon build
 
-      - name: Upload jars
+      - name: Upload JARs
         uses: actions/upload-artifact@v4
         with:
           name: build-artifacts
