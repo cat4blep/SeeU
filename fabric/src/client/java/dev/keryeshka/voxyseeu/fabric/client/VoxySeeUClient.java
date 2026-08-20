@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderEvents;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Camera;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
@@ -86,9 +87,13 @@ public final class VoxySeeUClient implements ClientModInitializer {
         WorldRenderEvents.AFTER_ENTITIES.register(renderer::render);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (OPEN_CONFIG_KEY.consumeClick()) {
-                client.setScreen(new SeeUConfigScreen(client.screen, config.copy(), VoxySeeUClient::applyConfig));
+                client.setScreen(createConfigScreen(client.screen));
             }
         });
+    }
+
+    static Screen createConfigScreen(Screen parent) {
+        return new SeeUConfigScreen(parent, config.copy(), VoxySeeUClient::applyConfig);
     }
 
     private static void applyConfig(VoxySeeUClientConfig updatedConfig) {

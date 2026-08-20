@@ -3,4 +3,4 @@ version: ${version}
 main: dev.keryeshka.voxyseeu.paper.VoxySeeUPaperPlugin
 api-version: "${minecraft_version}"
 author: Keryesh4ka
-description: Streams distant player proxies to the SeeU Fabric client.
+description: Sends distant-player snapshots to SeeU clients on Fabric and NeoForge.

@@ -15,6 +15,16 @@ base {
     archivesName = "seeu-fabric-1.21.11"
 }
 
+repositories {
+    maven {
+        name = "Terraformers"
+        url = "https://maven.terraformersmc.com/"
+        content {
+            includeGroup "com.terraformersmc"
+        }
+    }
+}
+
 loom {
     splitEnvironmentSourceSets()
 
@@ -53,6 +63,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     modClientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    modClientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 
     implementation project(":common")
     clientImplementation project(":common")
