@@ -7,6 +7,16 @@ base {
     archivesName = "seeu-fabric"
 }
 
+repositories {
+    maven {
+        name = "Terraformers"
+        url = "https://maven.terraformersmc.com/"
+        content {
+            includeGroup "com.terraformersmc"
+        }
+    }
+}
+
 loom {
     splitEnvironmentSourceSets()
 
@@ -45,6 +55,7 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     clientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     clientImplementation "net.fabricmc.fabric-api:fabric-rendering-v1:${project.fabric_rendering_api_version}"
+    clientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
 
     implementation project(":common")
     clientImplementation project(":common")
