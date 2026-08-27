@@ -24,7 +24,7 @@ class AddonBusLifecycleTest {
     @Test
     void rejectsDuplicateRegistrationAndFreezesAtConnect() {
         SeeUClientAddons client = new SeeUClientAddons();
-        AddonDescriptor descriptor = descriptor("seeu_extra", AddonDirection.CLIENTBOUND, 64);
+        AddonDescriptor descriptor = descriptor("test_addon", AddonDirection.CLIENTBOUND, 64);
         client.register(descriptor, new byte[0], new ClientAddonEndpoint() {
         });
         assertThrows(IllegalStateException.class,
@@ -48,8 +48,8 @@ class AddonBusLifecycleTest {
     void negotiatesHelloAckAndBidirectionalDataWithEffectiveBound() {
         SeeUClientAddons client = new SeeUClientAddons();
         SeeUServerAddons server = new SeeUServerAddons();
-        AddonDescriptor clientDescriptor = descriptor("seeu_extra", AddonDirection.BIDIRECTIONAL, 128);
-        AddonDescriptor serverDescriptor = descriptor("seeu_extra", AddonDirection.BIDIRECTIONAL, 64);
+        AddonDescriptor clientDescriptor = descriptor("test_addon", AddonDirection.BIDIRECTIONAL, 128);
+        AddonDescriptor serverDescriptor = descriptor("test_addon", AddonDirection.BIDIRECTIONAL, 64);
         AtomicReference<ClientAddonSession> clientSession = new AtomicReference<>();
         AtomicReference<ServerAddonSession> serverSession = new AtomicReference<>();
         List<byte[]> clientReceived = new ArrayList<>();
@@ -88,8 +88,8 @@ class AddonBusLifecycleTest {
 
         Bridge bridge = new Bridge(client, server);
         bridge.connect();
-        assertTrue(client.isAccepted("seeu_extra"));
-        assertTrue(server.isAccepted(PLAYER_ID, "seeu_extra"));
+        assertTrue(client.isAccepted("test_addon"));
+        assertTrue(server.isAccepted(PLAYER_ID, "test_addon"));
         assertNotNull(clientSession.get());
         assertNotNull(serverSession.get());
         assertEquals(64, clientSession.get().descriptor().maximumPayloadBytes());
@@ -106,7 +106,7 @@ class AddonBusLifecycleTest {
     void ignoresClientSideStaleAndUnknownDataAndRejectsDirectionSend() {
         SeeUClientAddons client = new SeeUClientAddons();
         SeeUServerAddons server = new SeeUServerAddons();
-        AddonDescriptor descriptor = descriptor("seeu_extra", AddonDirection.CLIENTBOUND, 64);
+        AddonDescriptor descriptor = descriptor("test_addon", AddonDirection.CLIENTBOUND, 64);
         AtomicReference<ClientAddonSession> clientSession = new AtomicReference<>();
         AtomicInteger clientData = new AtomicInteger();
         AtomicInteger serverData = new AtomicInteger();
@@ -135,7 +135,7 @@ class AddonBusLifecycleTest {
         Bridge bridge = new Bridge(client, server);
         bridge.connect();
 
-        client.receiveData(new AddonEnvelope(2, "seeu_extra", new byte[]{1}));
+        client.receiveData(new AddonEnvelope(2, "test_addon", new byte[]{1}));
         client.receiveData(new AddonEnvelope(1, "unknown", new byte[]{1}));
         assertEquals(0, clientData.get());
         assertEquals(0, serverData.get());
@@ -243,7 +243,7 @@ class AddonBusLifecycleTest {
     void disconnectCallbacksRunExactlyOnce() {
         SeeUClientAddons client = new SeeUClientAddons();
         SeeUServerAddons server = new SeeUServerAddons();
-        AddonDescriptor descriptor = descriptor("seeu_extra", AddonDirection.CLIENTBOUND, 64);
+        AddonDescriptor descriptor = descriptor("test_addon", AddonDirection.CLIENTBOUND, 64);
         AtomicInteger clientCloses = new AtomicInteger();
         AtomicInteger serverCloses = new AtomicInteger();
         client.register(descriptor, new byte[0], endpointCapturing(new AtomicReference<>(), clientCloses));
@@ -273,7 +273,7 @@ class AddonBusLifecycleTest {
     void eitherSideCanRequestRenegotiation() {
         SeeUClientAddons client = new SeeUClientAddons();
         SeeUServerAddons server = new SeeUServerAddons();
-        AddonDescriptor descriptor = descriptor("seeu_extra", AddonDirection.CLIENTBOUND, 64);
+        AddonDescriptor descriptor = descriptor("test_addon", AddonDirection.CLIENTBOUND, 64);
         AtomicInteger clientOpens = new AtomicInteger();
         AtomicInteger serverOpens = new AtomicInteger();
         AtomicInteger clientCloses = new AtomicInteger();
@@ -317,15 +317,15 @@ class AddonBusLifecycleTest {
         assertEquals(3, serverOpens.get());
         assertEquals(2, clientCloses.get());
         assertEquals(2, serverCloses.get());
-        assertTrue(client.isAccepted("seeu_extra"));
-        assertTrue(server.isAccepted(PLAYER_ID, "seeu_extra"));
+        assertTrue(client.isAccepted("test_addon"));
+        assertTrue(server.isAccepted(PLAYER_ID, "test_addon"));
     }
 
     @Test
     void reentrantRenegotiationDuringClientOpenKeepsTheNewestSession() {
         SeeUClientAddons client = new SeeUClientAddons();
         SeeUServerAddons server = new SeeUServerAddons();
-        AddonDescriptor descriptor = descriptor("seeu_extra", AddonDirection.BIDIRECTIONAL, 64);
+        AddonDescriptor descriptor = descriptor("test_addon", AddonDirection.BIDIRECTIONAL, 64);
         AtomicInteger clientOpens = new AtomicInteger();
         AtomicInteger serverMessages = new AtomicInteger();
         AtomicReference<ClientAddonSession> newestSession = new AtomicReference<>();
@@ -354,8 +354,8 @@ class AddonBusLifecycleTest {
         new Bridge(client, server).connect();
 
         assertEquals(2, clientOpens.get());
-        assertTrue(client.isAccepted("seeu_extra"));
-        assertTrue(server.isAccepted(PLAYER_ID, "seeu_extra"));
+        assertTrue(client.isAccepted("test_addon"));
+        assertTrue(server.isAccepted(PLAYER_ID, "test_addon"));
         newestSession.get().send(new byte[]{1});
         assertEquals(1, serverMessages.get());
     }

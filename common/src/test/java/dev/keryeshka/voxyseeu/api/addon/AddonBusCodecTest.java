@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class AddonBusCodecTest {
     private static final AddonDescriptor DESCRIPTOR =
-            new AddonDescriptor("seeu_extra", 3, AddonDirection.BIDIRECTIONAL, 4096);
+            new AddonDescriptor("test_addon", 3, AddonDirection.BIDIRECTIONAL, 4096);
 
     @Test
     void roundTripsEveryControlMessageAndData() {
@@ -50,14 +50,14 @@ class AddonBusCodecTest {
         );
 
         assertEquals(
-                new AddonCloseMessage(7, "seeu_extra", AddonCloseReason.ENDPOINT_FAILURE),
-                roundTripControl(new AddonCloseMessage(7, "seeu_extra", AddonCloseReason.ENDPOINT_FAILURE))
+                new AddonCloseMessage(7, "test_addon", AddonCloseReason.ENDPOINT_FAILURE),
+                roundTripControl(new AddonCloseMessage(7, "test_addon", AddonCloseReason.ENDPOINT_FAILURE))
         );
         assertEquals(new AddonRenegotiateMessage(7), roundTripControl(new AddonRenegotiateMessage(7)));
 
-        AddonEnvelope decodedEnvelope = roundTripData(new AddonEnvelope(7, "seeu_extra", new byte[]{4, 5}));
+        AddonEnvelope decodedEnvelope = roundTripData(new AddonEnvelope(7, "test_addon", new byte[]{4, 5}));
         assertEquals(7, decodedEnvelope.generation());
-        assertEquals("seeu_extra", decodedEnvelope.addonId());
+        assertEquals("test_addon", decodedEnvelope.addonId());
         assertArrayEquals(new byte[]{4, 5}, decodedEnvelope.payload());
     }
 
@@ -77,7 +77,7 @@ class AddonBusCodecTest {
         assertArrayEquals(new byte[]{4}, decision.acknowledgementData());
 
         byte[] payload = {6};
-        AddonEnvelope envelope = new AddonEnvelope(1, "seeu_extra", payload);
+        AddonEnvelope envelope = new AddonEnvelope(1, "test_addon", payload);
         payload[0] = 7;
         assertArrayEquals(new byte[]{6}, envelope.payload());
     }
@@ -97,7 +97,7 @@ class AddonBusCodecTest {
         assertThrows(IllegalArgumentException.class,
                 () -> AddonDecision.accept(new byte[AddonLimits.MAX_HANDSHAKE_BYTES + 1]));
         assertThrows(IllegalArgumentException.class,
-                () -> new AddonEnvelope(1, "seeu_extra", new byte[AddonLimits.MAX_DATA_BYTES + 1]));
+                () -> new AddonEnvelope(1, "test_addon", new byte[AddonLimits.MAX_DATA_BYTES + 1]));
     }
 
     @Test
