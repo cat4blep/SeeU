@@ -1,9 +1,15 @@
 package dev.keryeshka.voxyseeu.fabric.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.keryeshka.voxyseeu.api.addon.AddonTransport;
+import dev.keryeshka.voxyseeu.api.addon.SeeUClientAddons;
+import dev.keryeshka.voxyseeu.api.addon.protocol.AddonControlMessage;
+import dev.keryeshka.voxyseeu.api.addon.protocol.AddonEnvelope;
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
 import dev.keryeshka.voxyseeu.common.protocol.ClientHelloPacket;
 import dev.keryeshka.voxyseeu.fabric.client.config.VoxySeeUClientConfig;
+import dev.keryeshka.voxyseeu.fabric.network.AddonControlPayload;
+import dev.keryeshka.voxyseeu.fabric.network.AddonDataPayload;
 import dev.keryeshka.voxyseeu.fabric.network.ClientHelloPayload;
 import dev.keryeshka.voxyseeu.fabric.network.FabricPayloads;
 import dev.keryeshka.voxyseeu.fabric.network.FarPlayersPayload;
@@ -37,6 +43,7 @@ public final class VoxySeeUClient implements ClientModInitializer {
     );
 
     private final FarPlayerTracker tracker = new FarPlayerTracker();
+    private final SeeUClientAddons clientAddons = SeeUClientAddons.getInstance();
     private static VoxySeeUClientConfig config;
     private static FarPlayerRenderer renderer;
 
@@ -64,26 +71,34 @@ public final class VoxySeeUClient implements ClientModInitializer {
             renderer.clear();
             LOGGER.info("Sending SeeU hello to server");
             sendHello();
+            connectAddons();
         });
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, client) -> {
             tracker.clear();
             renderer.clear();
+            clientAddons.disconnect();
         });
 
-        ClientPlayNetworking.registerGlobalReceiver(FarPlayersPayload.TYPE, (payload, context) ->
-                context.client().execute(() -> {
-                    boolean firstPacket = !tracker.hasReceivedPacket();
-                    tracker.apply(payload.packet());
-                    if (firstPacket) {
-                        LOGGER.info(
-                                "Received first SeeU packet: dimension={}, players={}",
-                                payload.packet().dimensionKey(),
-                                payload.packet().players().size()
-                        );
-                    }
-                }));
+        ClientPlayNetworking.registerGlobalReceiver(FarPlayersPayload.TYPE, (payload, context) -> {
+            boolean firstPacket = !tracker.hasReceivedPacket();
+            if (!tracker.apply(payload.packet())) {
+                return;
+            }
+            if (firstPacket) {
+                LOGGER.info(
+                        "Received first SeeU packet: dimension={}, players={}",
+                        payload.packet().dimensionKey(),
+                        payload.packet().players().size()
+                );
+            }
+        });
+        ClientPlayNetworking.registerGlobalReceiver(AddonControlPayload.TYPE, (payload, context) ->
+                clientAddons.receiveControl(payload.message()));
+        ClientPlayNetworking.registerGlobalReceiver(AddonDataPayload.TYPE, (payload, context) ->
+                clientAddons.receiveData(payload.envelope()));
 
+        WorldRenderEvents.END_EXTRACTION.register(context -> renderer.updateFrustum(context.frustum()));
         WorldRenderEvents.AFTER_ENTITIES.register(renderer::render);
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (OPEN_CONFIG_KEY.consumeClick()) {
@@ -133,9 +148,31 @@ public final class VoxySeeUClient implements ClientModInitializer {
                 config.enabled,
                 config.maximumRenderDistanceBlocks,
                 config.minimumProxyDistanceBlocks,
-                config.renderNameTags,
                 config.shareSelf,
                 config.shareMaximumDistanceBlocks
         )));
+    }
+
+    private void connectAddons() {
+        clientAddons.disconnect();
+        if (!ClientPlayNetworking.canSend(AddonControlPayload.TYPE)
+                || !ClientPlayNetworking.canSend(AddonDataPayload.TYPE)) {
+            return;
+        }
+        clientAddons.connect(new AddonTransport() {
+            @Override
+            public void sendControl(AddonControlMessage message) {
+                if (ClientPlayNetworking.canSend(AddonControlPayload.TYPE)) {
+                    ClientPlayNetworking.send(new AddonControlPayload(message));
+                }
+            }
+
+            @Override
+            public void sendData(AddonEnvelope envelope) {
+                if (ClientPlayNetworking.canSend(AddonDataPayload.TYPE)) {
+                    ClientPlayNetworking.send(new AddonDataPayload(envelope));
+                }
+            }
+        });
     }
 }

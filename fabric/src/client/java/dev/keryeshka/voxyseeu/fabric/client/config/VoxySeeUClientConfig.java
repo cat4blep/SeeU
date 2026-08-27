@@ -1,5 +1,6 @@
 package dev.keryeshka.voxyseeu.fabric.client.config;
 
+import dev.keryeshka.voxyseeu.common.ConfigMigrations;
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
 import dev.keryeshka.voxyseeu.fabric.config.JsonConfigIO;
 import net.fabricmc.loader.api.FabricLoader;
@@ -11,7 +12,6 @@ import java.nio.file.StandardCopyOption;
 
 public final class VoxySeeUClientConfig {
     private static final int CURRENT_CONFIG_VERSION = 6;
-    private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
 
     public int configVersion = CURRENT_CONFIG_VERSION;
     public boolean enabled = true;
@@ -28,21 +28,19 @@ public final class VoxySeeUClientConfig {
         Path path = configDir.resolve("seeu-client.json");
         migrateLegacyConfigPath(configDir.resolve("voxyseeu-client.json"), path);
         VoxySeeUClientConfig config = JsonConfigIO.load(path, VoxySeeUClientConfig.class, VoxySeeUClientConfig::new);
-        if (config.configVersion < CURRENT_CONFIG_VERSION
-                && config.minimumProxyDistanceBlocks == LEGACY_GAP_DISTANCE_BLOCKS) {
-            config.minimumProxyDistanceBlocks = SharedDefaults.DEFAULT_MIN_PROXY_DISTANCE_BLOCKS;
-        }
-        if (config.configVersion < CURRENT_CONFIG_VERSION && config.maximumAnimationDistanceBlocks <= 0) {
-            config.maximumAnimationDistanceBlocks = Math.max(
-                    64,
-                    config.maximumRenderDistanceBlocks > 0
-                            ? config.maximumRenderDistanceBlocks
-                            : SharedDefaults.DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS
-            );
-        }
-        if (config.configVersion < CURRENT_CONFIG_VERSION) {
-            config.disableVanillaFog = SharedDefaults.DEFAULT_DISABLE_VANILLA_FOG;
-        }
+        config.minimumProxyDistanceBlocks = ConfigMigrations.minimumProxyDistance(
+                config.configVersion,
+                config.minimumProxyDistanceBlocks
+        );
+        config.maximumAnimationDistanceBlocks = ConfigMigrations.maximumAnimationDistance(
+                config.configVersion,
+                config.maximumAnimationDistanceBlocks,
+                config.maximumRenderDistanceBlocks
+        );
+        config.disableVanillaFog = ConfigMigrations.disableVanillaFog(
+                config.configVersion,
+                config.disableVanillaFog
+        );
         config.clamp();
         config.save();
         return config;
@@ -101,8 +99,10 @@ public final class VoxySeeUClientConfig {
             return;
         }
         try {
+            Files.createDirectories(path.getParent());
             Files.copy(legacyPath, path, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            throw new IllegalStateException("Failed to migrate config: " + legacyPath, exception);
         }
     }
 }

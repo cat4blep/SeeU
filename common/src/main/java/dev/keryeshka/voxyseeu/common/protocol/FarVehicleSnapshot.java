@@ -11,7 +11,4 @@ public record FarVehicleSnapshot(
         float yaw,
         float pitch
 ) {
-    public FarVehicleSnapshot {
-        entityTypeId = entityTypeId == null ? "" : entityTypeId;
-    }
 }

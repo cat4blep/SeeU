@@ -1,0 +1,92 @@
+buildscript {
+    repositories {
+        maven { url = "https://maven.fabricmc.net/" }
+        mavenCentral()
+    }
+    dependencies {
+        classpath "net.fabricmc:fabric-loom:${project.loom_version}"
+    }
+}
+
+apply plugin: "fabric-loom"
+apply plugin: "maven-publish"
+
+version = project.seeu_extra_version
+
+base {
+    archivesName = "seeu-extra-fabric-1.21.11"
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "seeu_extra" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+        }
+    }
+}
+
+sourceSets.client.java.srcDir(project(":seeu-extra-common").file("src/client/java"))
+sourceSets.main.java.srcDir(project(":seeu-extra-common").file("src/server/java"))
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(project.java_version as int)
+    }
+
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = project.java_version as int
+}
+
+tasks.named("jar") {
+    from(project(":seeu-extra-common").sourceSets.main.output)
+}
+
+tasks.named("sourcesJar") {
+    from(project(":seeu-extra-common").sourceSets.main.allSource)
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    modClientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+
+    implementation project(":common")
+    implementation project(":seeu-extra-common")
+    clientImplementation project(":common")
+    clientImplementation project(":seeu-extra-common")
+}
+
+processResources {
+    def addonVersion = project.seeu_extra_version
+    def minecraftVersion = project.minecraft_version
+    def loaderVersion = project.loader_version
+    inputs.property "version", addonVersion
+    inputs.property "minecraft_version", minecraftVersion
+    inputs.property "loader_version", loaderVersion
+
+    filesMatching("fabric.mod.json") {
+        expand(
+                version: addonVersion,
+                minecraft_version: minecraftVersion,
+                loader_version: loaderVersion
+        )
+    }
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+}
