@@ -8,6 +8,8 @@ base {
     archivesName = "seeu-neoforge-1.21.1"
 }
 
+sourceSets.main.java.srcDir(project(":common").file("src/server/java"))
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(project.java_version as int)

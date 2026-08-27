@@ -36,6 +36,8 @@ loom {
     }
 }
 
+sourceSets.main.java.srcDir(project(":common").file("src/server/java"))
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(project.java_version as int)
@@ -67,6 +69,15 @@ dependencies {
 
     implementation project(":common")
     clientImplementation project(":common")
+
+    testImplementation platform("org.junit:junit-bom:5.13.4")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testImplementation "io.netty:netty-buffer:${project.netty_version}"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.named("test") {
+    useJUnitPlatform()
 }
 
 processResources {

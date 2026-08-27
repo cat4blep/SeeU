@@ -15,6 +15,10 @@ public final class FabricPayloads {
         registered = true;
 
         PayloadTypeRegistry.playC2S().register(ClientHelloPayload.TYPE, ClientHelloPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(AddonControlPayload.TYPE, AddonControlPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playC2S().register(AddonDataPayload.TYPE, AddonDataPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(FarPlayersPayload.TYPE, FarPlayersPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(AddonControlPayload.TYPE, AddonControlPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(AddonDataPayload.TYPE, AddonDataPayload.STREAM_CODEC);
     }
 }

@@ -2,11 +2,17 @@ package dev.keryeshka.voxyseeu.neoforge.client;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.shaders.FogShape;
+import dev.keryeshka.voxyseeu.api.addon.AddonTransport;
+import dev.keryeshka.voxyseeu.api.addon.SeeUClientAddons;
+import dev.keryeshka.voxyseeu.api.addon.protocol.AddonControlMessage;
+import dev.keryeshka.voxyseeu.api.addon.protocol.AddonEnvelope;
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
 import dev.keryeshka.voxyseeu.common.protocol.ClientHelloPacket;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayersPacket;
 import dev.keryeshka.voxyseeu.common.protocol.ProtocolConstants;
 import dev.keryeshka.voxyseeu.neoforge.client.config.VoxySeeUClientConfig;
+import dev.keryeshka.voxyseeu.neoforge.network.AddonControlPayload;
+import dev.keryeshka.voxyseeu.neoforge.network.AddonDataPayload;
 import dev.keryeshka.voxyseeu.neoforge.network.ClientHelloPayload;
 import net.minecraft.client.Camera;
 import net.minecraft.client.KeyMapping;
@@ -45,6 +51,7 @@ public final class VoxySeeUNeoForgeClient {
     );
 
     private static final FarPlayerTracker TRACKER = new FarPlayerTracker();
+    private static final SeeUClientAddons CLIENT_ADDONS = SeeUClientAddons.getInstance();
     private static VoxySeeUClientConfig config;
     private static FarPlayerRenderer renderer;
 
@@ -67,6 +74,7 @@ public final class VoxySeeUNeoForgeClient {
         renderer.clear();
         LOGGER.info("Sending SeeU hello to server");
         sendHello();
+        connectAddons();
     }
 
     @SubscribeEvent
@@ -75,6 +83,7 @@ public final class VoxySeeUNeoForgeClient {
             renderer.clear();
         }
         TRACKER.clear();
+        CLIENT_ADDONS.disconnect();
     }
 
     @SubscribeEvent
@@ -112,10 +121,20 @@ public final class VoxySeeUNeoForgeClient {
     public static void handleFarPlayers(FarPlayersPacket packet) {
         ensureLoaded();
         boolean firstPacket = !TRACKER.hasReceivedPacket();
-        TRACKER.apply(packet);
+        if (!TRACKER.apply(packet)) {
+            return;
+        }
         if (firstPacket) {
             LOGGER.info("Received first SeeU packet: dimension={}, players={}", packet.dimensionKey(), packet.players().size());
         }
+    }
+
+    public static void handleAddonControl(AddonControlMessage message) {
+        CLIENT_ADDONS.receiveControl(message);
+    }
+
+    public static void handleAddonData(AddonEnvelope envelope) {
+        CLIENT_ADDONS.receiveData(envelope);
     }
 
     private static void ensureLoaded() {
@@ -163,9 +182,35 @@ public final class VoxySeeUNeoForgeClient {
                 config.enabled,
                 config.maximumRenderDistanceBlocks,
                 config.minimumProxyDistanceBlocks,
-                config.renderNameTags,
                 config.shareSelf,
                 config.shareMaximumDistanceBlocks
         )));
+    }
+
+    private static void connectAddons() {
+        CLIENT_ADDONS.disconnect();
+        var connection = Minecraft.getInstance().getConnection();
+        if (connection == null
+                || !connection.hasChannel(AddonControlPayload.TYPE)
+                || !connection.hasChannel(AddonDataPayload.TYPE)) {
+            return;
+        }
+        CLIENT_ADDONS.connect(new AddonTransport() {
+            @Override
+            public void sendControl(AddonControlMessage message) {
+                var currentConnection = Minecraft.getInstance().getConnection();
+                if (currentConnection != null && currentConnection.hasChannel(AddonControlPayload.TYPE)) {
+                    PacketDistributor.sendToServer(new AddonControlPayload(message));
+                }
+            }
+
+            @Override
+            public void sendData(AddonEnvelope envelope) {
+                var currentConnection = Minecraft.getInstance().getConnection();
+                if (currentConnection != null && currentConnection.hasChannel(AddonDataPayload.TYPE)) {
+                    PacketDistributor.sendToServer(new AddonDataPayload(envelope));
+                }
+            }
+        });
     }
 }

@@ -3,8 +3,7 @@ package dev.keryeshka.voxyseeu.neoforge.client;
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
-import dev.keryeshka.voxyseeu.neoforge.client.config.VoxySeeUClientConfig;
-import net.minecraft.core.registries.BuiltInRegistries;
+import dev.keryeshka.voxyseeu.common.protocol.FarPlayerMetadata;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -13,7 +12,9 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.MultiBufferSource;
+import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -25,7 +26,6 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,6 +35,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import dev.keryeshka.voxyseeu.neoforge.client.config.VoxySeeUClientConfig;
+import net.neoforged.neoforge.client.event.RenderLevelStageEvent;
 
 final class FarPlayerRenderer {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
@@ -45,6 +47,9 @@ final class FarPlayerRenderer {
     private final VoxySeeUClientConfig config;
     private final Map<UUID, FarPlayerRenderProxy> proxies = new HashMap<>();
     private final Map<UUID, Entity> vehicles = new HashMap<>();
+    private final Set<UUID> activePlayers = new HashSet<>();
+    private final Set<UUID> activeVehicles = new HashSet<>();
+    private final Set<UUID> submittedVehicles = new HashSet<>();
     private boolean loggedFirstSubmission;
 
     FarPlayerRenderer(FarPlayerTracker tracker, VoxySeeUClientConfig config) {
@@ -53,11 +58,17 @@ final class FarPlayerRenderer {
     }
 
     void clear() {
+        for (FarPlayerRenderProxy proxy : proxies.values()) {
+            proxy.stopRiding();
+        }
         for (Entity vehicle : vehicles.values()) {
             vehicle.ejectPassengers();
         }
         proxies.clear();
         vehicles.clear();
+        activePlayers.clear();
+        activeVehicles.clear();
+        submittedVehicles.clear();
         loggedFirstSubmission = false;
     }
 
@@ -65,12 +76,18 @@ final class FarPlayerRenderer {
         if (context.getStage() != RenderLevelStageEvent.Stage.AFTER_ENTITIES) {
             return;
         }
-
+        PoseStack poseStack = context.getPoseStack();
+        MultiBufferSource.BufferSource consumers = Minecraft.getInstance().renderBuffers().bufferSource();
+        Vec3 cameraPosition = context.getCamera().getPosition();
+        Frustum frustum = context.getFrustum();
+        float partialTick = context.getPartialTick().getGameTimeDeltaPartialTick(false);
         Minecraft minecraft = Minecraft.getInstance();
+        if (!config.enabled) {
+            clear();
+            return;
+        }
         ClientLevel level = minecraft.level;
         LocalPlayer localPlayer = minecraft.player;
-        PoseStack poseStack = context.getPoseStack();
-        MultiBufferSource.BufferSource consumers = minecraft.renderBuffers().bufferSource();
         if (level == null || localPlayer == null || poseStack == null || consumers == null) {
             clear();
             return;
@@ -82,22 +99,26 @@ final class FarPlayerRenderer {
             return;
         }
 
-        Vec3 cameraPosition = context.getCamera().getPosition();
         EntityRenderDispatcher dispatcher = minecraft.getEntityRenderDispatcher();
-        float partialTick = 0.0F;
         int animationTick = localPlayer.tickCount;
         long now = System.nanoTime();
+        Vec3 localPlayerPosition = localPlayer.position();
+        double minimumDistanceSquared = (double) config.minimumProxyDistanceBlocks
+                * config.minimumProxyDistanceBlocks;
+        double maximumDistanceSquared = (double) config.maximumRenderDistanceBlocks
+                * config.maximumRenderDistanceBlocks;
+        double maximumAnimationDistanceSquared = (double) config.maximumAnimationDistanceBlocks
+                * config.maximumAnimationDistanceBlocks;
+        double vanillaRenderDistance = minecraft.options.getEffectiveRenderDistance() * 16.0D + 16.0D;
+        double vanillaRenderDistanceSquared = vanillaRenderDistance * vanillaRenderDistance;
 
-        Set<UUID> active = new HashSet<>();
-        Set<UUID> activeVehicles = new HashSet<>();
-        Set<UUID> submittedVehicles = new HashSet<>();
-        for (Entity vehicle : vehicles.values()) {
-            vehicle.ejectPassengers();
-        }
+        activePlayers.clear();
+        activeVehicles.clear();
+        submittedVehicles.clear();
         for (TrackedFarPlayer tracked : tracker.players()) {
             Vec3 position = tracked.renderPosition(now);
-            double distance = position.distanceTo(localPlayer.position());
-            if (distance < config.minimumProxyDistanceBlocks || distance > config.maximumRenderDistanceBlocks) {
+            double distanceSquared = position.distanceToSqr(localPlayerPosition);
+            if (distanceSquared < minimumDistanceSquared || distanceSquared > maximumDistanceSquared) {
                 continue;
             }
 
@@ -105,9 +126,7 @@ final class FarPlayerRenderer {
             int chunkZ = Mth.floor(position.z) >> 4;
             boolean chunkLoaded = level.hasChunk(chunkX, chunkZ);
             boolean realPlayerStillPresent = level.getPlayerByUUID(tracked.uuid()) != null;
-            int vanillaRenderDistanceBlocks = minecraft.options.getEffectiveRenderDistance() * 16;
-
-            if (realPlayerStillPresent && chunkLoaded && distance <= vanillaRenderDistanceBlocks + 16.0D) {
+            if (realPlayerStillPresent && chunkLoaded && distanceSquared <= vanillaRenderDistanceSquared) {
                 continue;
             }
 
@@ -119,7 +138,7 @@ final class FarPlayerRenderer {
             });
 
             boolean allowWalkAnimation = config.maximumAnimationDistanceBlocks > 0
-                    && distance <= config.maximumAnimationDistanceBlocks;
+                    && distanceSquared <= maximumAnimationDistanceSquared;
             proxy.apply(
                     tracked,
                     position,
@@ -129,11 +148,14 @@ final class FarPlayerRenderer {
                     animationTick,
                     now
             );
-            active.add(tracked.uuid());
+            activePlayers.add(tracked.uuid());
 
             if (tracked.hasVehicle()) {
                 Entity vehicle = vehicles.compute(tracked.vehicleUuid(), (uuid, current) -> {
-                    if (current == null || current.level() != level || !BuiltInRegistries.ENTITY_TYPE.getKey(current.getType()).toString().equals(tracked.vehicleTypeId())) {
+                    if (current == null
+                            || current.level() != level
+                            || !BuiltInRegistries.ENTITY_TYPE.getKey(current.getType()).toString()
+                            .equals(tracked.vehicleTypeId())) {
                         return createVehicleProxy(level, tracked.vehicleTypeId());
                     }
                     return current;
@@ -145,7 +167,8 @@ final class FarPlayerRenderer {
                         proxy.stopRiding();
                         proxy.startRiding(vehicle);
                     }
-                    if (submittedVehicles.add(tracked.vehicleUuid())) {
+                    if (submittedVehicles.add(tracked.vehicleUuid())
+                            && shouldRender(dispatcher, vehicle, frustum, cameraPosition)) {
                         Vec3 vehiclePosition = tracked.renderVehiclePosition(now);
                         poseStack.pushPose();
                         dispatcher.render(
@@ -168,44 +191,74 @@ final class FarPlayerRenderer {
                 proxy.stopRiding();
             }
 
-            poseStack.pushPose();
-            dispatcher.render(
-                    proxy,
-                    position.x - cameraPosition.x,
-                    position.y - cameraPosition.y,
-                    position.z - cameraPosition.z,
-                    tracked.renderBodyYaw(now),
-                    partialTick,
-                    poseStack,
-                    consumers,
-                    LightTexture.FULL_BRIGHT
-            );
-            poseStack.popPose();
-
-            if (!loggedFirstSubmission) {
-                LOGGER.info(
-                        "Submitted first far player render proxy: name={}, distance={}",
-                        tracked.name(),
-                        Math.round(distance)
+            if (shouldRender(dispatcher, proxy, frustum, cameraPosition)) {
+                poseStack.pushPose();
+                dispatcher.render(
+                        proxy,
+                        position.x - cameraPosition.x,
+                        position.y - cameraPosition.y,
+                        position.z - cameraPosition.z,
+                        tracked.renderBodyYaw(now),
+                        partialTick,
+                        poseStack,
+                        consumers,
+                        LightTexture.FULL_BRIGHT
                 );
-                loggedFirstSubmission = true;
+                poseStack.popPose();
+
+                if (!loggedFirstSubmission) {
+                    LOGGER.info(
+                            "Submitted first far player render proxy: name={}, distance={}",
+                            tracked.name(),
+                            Math.round(Math.sqrt(distanceSquared))
+                    );
+                    loggedFirstSubmission = true;
+                }
             }
         }
-
         consumers.endBatch();
-        proxies.keySet().removeIf(uuid -> !active.contains(uuid));
-        vehicles.entrySet().removeIf(entry -> !activeVehicles.contains(entry.getKey()));
+
+        proxies.entrySet().removeIf(entry -> {
+            if (activePlayers.contains(entry.getKey())) {
+                return false;
+            }
+            entry.getValue().stopRiding();
+            return true;
+        });
+        vehicles.entrySet().removeIf(entry -> {
+            if (activeVehicles.contains(entry.getKey())) {
+                return false;
+            }
+            entry.getValue().ejectPassengers();
+            return true;
+        });
+    }
+
+    private static boolean shouldRender(
+            EntityRenderDispatcher dispatcher,
+            Entity entity,
+            Frustum frustum,
+            Vec3 cameraPosition
+    ) {
+        return frustum == null || dispatcher.shouldRender(
+                entity,
+                frustum,
+                cameraPosition.x,
+                cameraPosition.y,
+                cameraPosition.z
+        );
     }
 
     private static Entity createVehicleProxy(ClientLevel level, String entityTypeId) {
-        if (!entityTypeId.startsWith("minecraft:")) {
+        ResourceLocation typeId = ResourceLocation.tryParse(entityTypeId);
+        if (typeId == null) {
+            return null;
+        }
+        EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(typeId);
+        if (entityType == null) {
             return null;
         }
         try {
-            EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(ResourceLocation.parse(entityTypeId));
-            if (entityType == null) {
-                return null;
-            }
             Entity entity = entityType.create(level);
             if (entity == null) {
                 return null;
@@ -215,7 +268,7 @@ final class FarPlayerRenderer {
             entity.setNoGravity(true);
             entity.setInvisible(false);
             return entity;
-        } catch (Exception ignored) {
+        } catch (RuntimeException | LinkageError ignored) {
             return null;
         }
     }
@@ -262,6 +315,8 @@ final class FarPlayerRenderer {
         private int maximumRenderDistanceBlocks;
         private Vec3 lastWalkAnimationPosition;
         private int lastWalkAnimationTick = Integer.MIN_VALUE;
+        private FarPlayerMetadata appliedMetadata;
+        private boolean appliedNameTagVisibility;
 
         private FarPlayerRenderProxy(ClientLevel level, UUID trackedUuid, String name) {
             super(level, new GameProfile(trackedUuid, name));
@@ -307,15 +362,26 @@ final class FarPlayerRenderer {
             this.setShiftKeyDown(tracked.sneaking());
             this.setSwimming(tracked.swimming());
             this.setPose(resolvePose(tracked));
-            this.setItemSlot(EquipmentSlot.MAINHAND, createItemStack(tracked.mainHand()));
-            this.setItemSlot(EquipmentSlot.OFFHAND, createItemStack(tracked.offHand()));
-            this.setItemSlot(EquipmentSlot.FEET, createItemStack(tracked.feet()));
-            this.setItemSlot(EquipmentSlot.LEGS, createItemStack(tracked.legs()));
-            this.setItemSlot(EquipmentSlot.CHEST, createItemStack(tracked.chest()));
-            this.setItemSlot(EquipmentSlot.HEAD, createItemStack(tracked.head()));
-            this.setCustomName(Component.literal(tracked.name()));
-            this.setCustomNameVisible(renderNameTags);
+            applyMetadata(tracked.metadata());
+            if (appliedNameTagVisibility != renderNameTags) {
+                this.setCustomNameVisible(renderNameTags);
+                appliedNameTagVisibility = renderNameTags;
+            }
             updateWalkAnimation(position, tracked, allowWalkAnimation, animationTick);
+        }
+
+        private void applyMetadata(FarPlayerMetadata metadata) {
+            if (metadata.equals(appliedMetadata)) {
+                return;
+            }
+            appliedMetadata = metadata;
+            this.setItemSlot(EquipmentSlot.MAINHAND, createItemStack(metadata.mainHand()));
+            this.setItemSlot(EquipmentSlot.OFFHAND, createItemStack(metadata.offHand()));
+            this.setItemSlot(EquipmentSlot.FEET, createItemStack(metadata.feet()));
+            this.setItemSlot(EquipmentSlot.LEGS, createItemStack(metadata.legs()));
+            this.setItemSlot(EquipmentSlot.CHEST, createItemStack(metadata.chest()));
+            this.setItemSlot(EquipmentSlot.HEAD, createItemStack(metadata.head()));
+            this.setCustomName(Component.literal(metadata.name()));
         }
 
         private void updateWalkAnimation(
@@ -327,8 +393,7 @@ final class FarPlayerRenderer {
             if (lastWalkAnimationPosition == null) {
                 lastWalkAnimationPosition = position;
                 lastWalkAnimationTick = animationTick;
-                this.walkAnimation.setSpeed(0.0F);
-                this.walkAnimation.update(0.0F, WALK_ANIMATION_SCALE);
+                stopWalkAnimation();
                 return;
             }
             if (animationTick == lastWalkAnimationTick) {
@@ -337,8 +402,7 @@ final class FarPlayerRenderer {
 
             lastWalkAnimationTick = animationTick;
             if (!allowWalkAnimation || tracked.gliding() || tracked.swimming() || tracked.hasVehicle()) {
-                this.walkAnimation.setSpeed(0.0F);
-                this.walkAnimation.update(0.0F, WALK_ANIMATION_SCALE);
+                stopWalkAnimation();
                 lastWalkAnimationPosition = position;
                 return;
             }
@@ -351,6 +415,11 @@ final class FarPlayerRenderer {
             float walkSpeed = Math.min(movement * 4.0F, 1.0F);
             this.walkAnimation.update(walkSpeed, WALK_ANIMATION_SCALE);
             lastWalkAnimationPosition = position;
+        }
+
+        private void stopWalkAnimation() {
+            this.walkAnimation.setSpeed(0.0F);
+            this.walkAnimation.update(0.0F, WALK_ANIMATION_SCALE);
         }
 
         @Override
@@ -371,17 +440,17 @@ final class FarPlayerRenderer {
     }
 
     private static ItemStack createItemStack(FarItemSnapshot snapshot) {
-        if (snapshot == null || snapshot.isEmpty()) {
+        if (snapshot.isEmpty()) {
             return ItemStack.EMPTY;
         }
-        try {
-            Item item = BuiltInRegistries.ITEM.get(ResourceLocation.parse(snapshot.itemId()));
-            if (item == null || item == Items.AIR) {
-                return ItemStack.EMPTY;
-            }
-            return new ItemStack(item, Math.max(1, snapshot.count()));
-        } catch (Exception ignored) {
+        ResourceLocation itemId = ResourceLocation.tryParse(snapshot.itemId());
+        if (itemId == null) {
             return ItemStack.EMPTY;
         }
+        Item item = BuiltInRegistries.ITEM.get(itemId);
+        if (item == null || item == Items.AIR) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(item, snapshot.count());
     }
 }

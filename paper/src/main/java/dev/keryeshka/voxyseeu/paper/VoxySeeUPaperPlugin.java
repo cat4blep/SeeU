@@ -1,7 +1,10 @@
 package dev.keryeshka.voxyseeu.paper;
 
+import dev.keryeshka.voxyseeu.common.ConfigMigrations;
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
+import dev.keryeshka.voxyseeu.common.UpdateIntervalMigration;
 import dev.keryeshka.voxyseeu.common.protocol.ProtocolConstants;
+import dev.keryeshka.voxyseeu.common.protocol.PacketCodec;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -18,8 +21,7 @@ import java.nio.file.StandardCopyOption;
 
 public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessageListener, Listener {
     private static final int BSTATS_PLUGIN_ID = 30780;
-    private static final int CURRENT_CONFIG_VERSION = 3;
-    private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
+    private static final int CURRENT_CONFIG_VERSION = 4;
 
     private PaperFarPlayerService service;
 
@@ -30,13 +32,19 @@ public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessa
         migrateLegacyConfig();
 
         new Metrics(this, BSTATS_PLUGIN_ID);
-        this.service = new PaperFarPlayerService(this);
+        int interval = Math.min(
+                PacketCodec.MAX_UPDATE_INTERVAL_TICKS,
+                Math.max(1, getConfig().getInt(
+                        "update-interval-ticks",
+                        SharedDefaults.DEFAULT_UPDATE_INTERVAL_TICKS
+                ))
+        );
+        this.service = new PaperFarPlayerService(this, interval);
 
         Bukkit.getMessenger().registerIncomingPluginChannel(this, ProtocolConstants.HELLO_CHANNEL, this);
         Bukkit.getMessenger().registerOutgoingPluginChannel(this, ProtocolConstants.PLAYERS_CHANNEL);
         Bukkit.getPluginManager().registerEvents(this, this);
 
-        int interval = Math.max(1, getConfig().getInt("update-interval-ticks", SharedDefaults.DEFAULT_UPDATE_INTERVAL_TICKS));
         Bukkit.getScheduler().runTaskTimer(this, service::broadcast, interval, interval);
     }
 
@@ -51,7 +59,7 @@ public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessa
         if (!ProtocolConstants.HELLO_CHANNEL.equals(channel)) {
             return;
         }
-        service.handleHello(player, message);
+        service.acceptHello(player, message);
     }
 
     @EventHandler
@@ -63,12 +71,29 @@ public final class VoxySeeUPaperPlugin extends JavaPlugin implements PluginMessa
         int configVersion = getConfig().getInt("config-version", 1);
         int minimumProxyDistance = getConfig().getInt(
                 "minimum-proxy-distance-blocks",
-                LEGACY_GAP_DISTANCE_BLOCKS
+                ConfigMigrations.LEGACY_GAP_DISTANCE_BLOCKS
         );
 
-        if (configVersion < CURRENT_CONFIG_VERSION && minimumProxyDistance == LEGACY_GAP_DISTANCE_BLOCKS) {
+        int migratedMinimumProxyDistance = ConfigMigrations.minimumProxyDistance(
+                configVersion,
+                minimumProxyDistance
+        );
+        if (migratedMinimumProxyDistance != minimumProxyDistance) {
             getLogger().info("Migrating legacy minimum-proxy-distance-blocks from 192 to 0 to remove the handoff gap.");
-            getConfig().set("minimum-proxy-distance-blocks", SharedDefaults.DEFAULT_MIN_PROXY_DISTANCE_BLOCKS);
+            getConfig().set("minimum-proxy-distance-blocks", migratedMinimumProxyDistance);
+        }
+        int updateInterval = getConfig().getInt(
+                "update-interval-ticks",
+                UpdateIntervalMigration.LEGACY_DEFAULT_UPDATE_INTERVAL_TICKS
+        );
+        int migratedUpdateInterval = UpdateIntervalMigration.migrate(
+                configVersion,
+                CURRENT_CONFIG_VERSION,
+                updateInterval
+        );
+        if (migratedUpdateInterval != updateInterval) {
+            getLogger().info("Migrating the legacy default update interval from 10 ticks to 2 ticks.");
+            getConfig().set("update-interval-ticks", migratedUpdateInterval);
         }
 
         getConfig().set("config-version", CURRENT_CONFIG_VERSION);

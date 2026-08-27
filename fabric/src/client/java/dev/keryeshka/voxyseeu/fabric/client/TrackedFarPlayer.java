@@ -1,22 +1,22 @@
 package dev.keryeshka.voxyseeu.fabric.client;
 
 import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
+import dev.keryeshka.voxyseeu.common.protocol.FarPlayerMetadata;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayerSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarVehicleSnapshot;
+import dev.keryeshka.voxyseeu.common.protocol.SnapshotInterpolationTiming;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.Vec3;
 
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
 
 final class TrackedFarPlayer {
-    private static final long INTERPOLATION_WINDOW_NANOS = TimeUnit.MILLISECONDS.toNanos(550L);
-
     private final UUID uuid;
-    private String name;
+    private FarPlayerMetadata metadata;
     private Vec3 fromPosition;
     private Vec3 toPosition;
     private long snapshotNanos;
+    private long interpolationWindowNanos;
     private float fromBodyYaw;
     private float toBodyYaw;
     private float fromHeadYaw;
@@ -26,12 +26,6 @@ final class TrackedFarPlayer {
     private boolean sneaking;
     private boolean gliding;
     private boolean swimming;
-    private FarItemSnapshot mainHand;
-    private FarItemSnapshot offHand;
-    private FarItemSnapshot feet;
-    private FarItemSnapshot legs;
-    private FarItemSnapshot chest;
-    private FarItemSnapshot head;
     private UUID vehicleUuid;
     private String vehicleTypeId;
     private Vec3 fromVehiclePosition;
@@ -42,12 +36,18 @@ final class TrackedFarPlayer {
     private float toVehiclePitch;
     private int generation;
 
-    TrackedFarPlayer(FarPlayerSnapshot snapshot, int generation) {
+    TrackedFarPlayer(
+            FarPlayerSnapshot snapshot,
+            int generation,
+            long nowNanos,
+            long interpolationWindowNanos
+    ) {
         this.uuid = snapshot.uuid();
-        this.name = snapshot.name();
+        this.metadata = snapshot.metadata();
         this.fromPosition = new Vec3(snapshot.x(), snapshot.y(), snapshot.z());
         this.toPosition = this.fromPosition;
-        this.snapshotNanos = System.nanoTime();
+        this.snapshotNanos = nowNanos;
+        this.interpolationWindowNanos = interpolationWindowNanos;
         this.fromBodyYaw = snapshot.bodyYaw();
         this.toBodyYaw = snapshot.bodyYaw();
         this.fromHeadYaw = snapshot.headYaw();
@@ -57,13 +57,7 @@ final class TrackedFarPlayer {
         this.sneaking = snapshot.sneaking();
         this.gliding = snapshot.gliding();
         this.swimming = snapshot.swimming();
-        this.mainHand = snapshot.mainHand();
-        this.offHand = snapshot.offHand();
-        this.feet = snapshot.feet();
-        this.legs = snapshot.legs();
-        this.chest = snapshot.chest();
-        this.head = snapshot.head();
-        applyVehicleSnapshot(snapshot.vehicle(), false);
+        applyVehicleSnapshot(snapshot.vehicle(), false, nowNanos);
         this.generation = generation;
     }
 
@@ -71,8 +65,12 @@ final class TrackedFarPlayer {
         return uuid;
     }
 
+    FarPlayerMetadata metadata() {
+        return metadata;
+    }
+
     String name() {
-        return name;
+        return metadata.name();
     }
 
     boolean sneaking() {
@@ -88,27 +86,27 @@ final class TrackedFarPlayer {
     }
 
     FarItemSnapshot mainHand() {
-        return mainHand;
+        return metadata.mainHand();
     }
 
     FarItemSnapshot offHand() {
-        return offHand;
+        return metadata.offHand();
     }
 
     FarItemSnapshot feet() {
-        return feet;
+        return metadata.feet();
     }
 
     FarItemSnapshot legs() {
-        return legs;
+        return metadata.legs();
     }
 
     FarItemSnapshot chest() {
-        return chest;
+        return metadata.chest();
     }
 
     FarItemSnapshot head() {
-        return head;
+        return metadata.head();
     }
 
     boolean hasVehicle() {
@@ -123,71 +121,98 @@ final class TrackedFarPlayer {
         return vehicleTypeId;
     }
 
-    Vec3 renderVehiclePosition(long now) {
+    Vec3 renderVehiclePosition(long nowNanos) {
         if (toVehiclePosition == null) {
             return Vec3.ZERO;
         }
-        return fromVehiclePosition == null ? toVehiclePosition : fromVehiclePosition.lerp(toVehiclePosition, progress(now));
+        return fromVehiclePosition == null
+                ? toVehiclePosition
+                : fromVehiclePosition.lerp(toVehiclePosition, progress(nowNanos));
     }
 
-    float renderVehicleYaw(long now) {
-        return Mth.rotLerp(progress(now), fromVehicleYaw, toVehicleYaw);
+    float renderVehicleYaw(long nowNanos) {
+        return Mth.rotLerp(progress(nowNanos), fromVehicleYaw, toVehicleYaw);
     }
 
-    float renderVehiclePitch(long now) {
-        return Mth.lerp(progress(now), fromVehiclePitch, toVehiclePitch);
+    float renderVehiclePitch(long nowNanos) {
+        return Mth.lerp(progress(nowNanos), fromVehiclePitch, toVehiclePitch);
     }
 
     int generation() {
         return generation;
     }
 
-    void apply(FarPlayerSnapshot snapshot, int generation) {
-        long now = System.nanoTime();
-        this.fromPosition = renderPosition(now);
-        this.toPosition = new Vec3(snapshot.x(), snapshot.y(), snapshot.z());
-        this.name = snapshot.name();
-        this.fromBodyYaw = renderBodyYaw(now);
+    void apply(
+            FarPlayerSnapshot snapshot,
+            int generation,
+            long nowNanos,
+            long nextInterpolationWindowNanos
+    ) {
+        Vec3 nextPosition = new Vec3(snapshot.x(), snapshot.y(), snapshot.z());
+        boolean teleport = SnapshotInterpolationTiming.shouldSnap(
+                toPosition.x,
+                toPosition.y,
+                toPosition.z,
+                nextPosition.x,
+                nextPosition.y,
+                nextPosition.z
+        );
+        if (teleport) {
+            this.fromPosition = nextPosition;
+            this.fromBodyYaw = snapshot.bodyYaw();
+            this.fromHeadYaw = snapshot.headYaw();
+            this.fromPitch = snapshot.pitch();
+        } else {
+            this.fromPosition = renderPosition(nowNanos);
+            this.fromBodyYaw = renderBodyYaw(nowNanos);
+            this.fromHeadYaw = renderHeadYaw(nowNanos);
+            this.fromPitch = renderPitch(nowNanos);
+        }
+        this.toPosition = nextPosition;
         this.toBodyYaw = snapshot.bodyYaw();
-        this.fromHeadYaw = renderHeadYaw(now);
         this.toHeadYaw = snapshot.headYaw();
-        this.fromPitch = renderPitch(now);
         this.toPitch = snapshot.pitch();
         this.sneaking = snapshot.sneaking();
         this.gliding = snapshot.gliding();
         this.swimming = snapshot.swimming();
-        this.mainHand = snapshot.mainHand();
-        this.offHand = snapshot.offHand();
-        this.feet = snapshot.feet();
-        this.legs = snapshot.legs();
-        this.chest = snapshot.chest();
-        this.head = snapshot.head();
-        applyVehicleSnapshot(snapshot.vehicle(), true);
-        this.snapshotNanos = now;
+        if (snapshot.metadata() != null) {
+            this.metadata = snapshot.metadata();
+        }
+        applyVehicleSnapshot(snapshot.vehicle(), true, nowNanos);
+        this.snapshotNanos = nowNanos;
+        this.interpolationWindowNanos = nextInterpolationWindowNanos;
         this.generation = generation;
     }
 
-    Vec3 renderPosition(long now) {
-        return fromPosition.lerp(toPosition, progress(now));
+    Vec3 renderPosition(long nowNanos) {
+        return fromPosition.lerp(toPosition, progress(nowNanos));
     }
 
-    float renderBodyYaw(long now) {
-        return Mth.rotLerp(progress(now), fromBodyYaw, toBodyYaw);
+    float renderBodyYaw(long nowNanos) {
+        return Mth.rotLerp(progress(nowNanos), fromBodyYaw, toBodyYaw);
     }
 
-    float renderHeadYaw(long now) {
-        return Mth.rotLerp(progress(now), fromHeadYaw, toHeadYaw);
+    float renderHeadYaw(long nowNanos) {
+        return Mth.rotLerp(progress(nowNanos), fromHeadYaw, toHeadYaw);
     }
 
-    float renderPitch(long now) {
-        return Mth.lerp(progress(now), fromPitch, toPitch);
+    float renderPitch(long nowNanos) {
+        return Mth.lerp(progress(nowNanos), fromPitch, toPitch);
     }
 
-    private float progress(long now) {
-        return Mth.clamp((float) (now - snapshotNanos) / (float) INTERPOLATION_WINDOW_NANOS, 0.0F, 1.0F);
+    private float progress(long nowNanos) {
+        return SnapshotInterpolationTiming.progress(
+                nowNanos,
+                snapshotNanos,
+                interpolationWindowNanos
+        );
     }
 
-    private void applyVehicleSnapshot(FarVehicleSnapshot vehicle, boolean interpolateFromCurrent) {
+    private void applyVehicleSnapshot(
+            FarVehicleSnapshot vehicle,
+            boolean interpolateFromCurrent,
+            long nowNanos
+    ) {
         if (vehicle == null) {
             this.vehicleUuid = null;
             this.vehicleTypeId = null;
@@ -200,13 +225,21 @@ final class TrackedFarPlayer {
             return;
         }
 
-        long now = System.nanoTime();
         Vec3 nextPosition = new Vec3(vehicle.x(), vehicle.y(), vehicle.z());
-        boolean sameVehicle = vehicle.uuid().equals(this.vehicleUuid) && vehicle.entityTypeId().equals(this.vehicleTypeId);
-        if (interpolateFromCurrent && sameVehicle && this.toVehiclePosition != null) {
-            this.fromVehiclePosition = renderVehiclePosition(now);
-            this.fromVehicleYaw = renderVehicleYaw(now);
-            this.fromVehiclePitch = renderVehiclePitch(now);
+        boolean sameVehicle = vehicle.uuid().equals(this.vehicleUuid)
+                && vehicle.entityTypeId().equals(this.vehicleTypeId);
+        boolean teleport = this.toVehiclePosition != null && SnapshotInterpolationTiming.shouldSnap(
+                this.toVehiclePosition.x,
+                this.toVehiclePosition.y,
+                this.toVehiclePosition.z,
+                nextPosition.x,
+                nextPosition.y,
+                nextPosition.z
+        );
+        if (interpolateFromCurrent && sameVehicle && this.toVehiclePosition != null && !teleport) {
+            this.fromVehiclePosition = renderVehiclePosition(nowNanos);
+            this.fromVehicleYaw = renderVehicleYaw(nowNanos);
+            this.fromVehiclePitch = renderVehiclePitch(nowNanos);
         } else {
             this.fromVehiclePosition = nextPosition;
             this.fromVehicleYaw = vehicle.yaw();
