@@ -25,35 +25,9 @@ The default schedule sends player movement every two server ticks. The client ad
 
 ## SeeU Extra
 
-SeeU Extra is a separate Fabric and NeoForge addon for non-player entities. Install SeeU and SeeU Extra on both the modded server and each client. Paper stays player-only and cannot run SeeU Extra.
+[SeeU Extra](https://github.com/cat4blep/SeeU-Extra) is maintained in its own repository. It adds long-range non-player entity rendering to Fabric and NeoForge through SeeU's addon API and transport stack. Install matching SeeU and SeeU Extra versions on both the modded server and its clients.
 
-The server writes `config/seeu-extra-server.json`. It starts with `mode` set to `DISABLED`, so the addon performs no entity scan until an administrator enables it.
-
-- `SELECTED` accepts entity IDs from `types` and registry namespaces from `namespaces`.
-- `ALL` accepts eligible loaded non-player entities.
-- `excludedTypes` and `excludedNamespaces` take precedence in both modes.
-- `maximumDistanceBlocks`, `minimumDistanceBlocks`, `entityCap`, and `updateIntervalTicks` bound server work and traffic.
-
-Example:
-
-```json
-{
-  "configVersion": 1,
-  "mode": "SELECTED",
-  "types": ["minecraft:zombie"],
-  "namespaces": ["iceandfire"],
-  "excludedTypes": [],
-  "excludedNamespaces": [],
-  "maximumDistanceBlocks": 8192,
-  "minimumDistanceBlocks": 0,
-  "entityCap": 128,
-  "updateIntervalTicks": 4
-}
-```
-
-The client writes `config/seeu-extra-client.json` with its enable switch and distance limits. The server chooses the lower maximum distance and the higher minimum distance from both configurations. Restart the client or server after editing either file.
-
-SeeU Extra reads loaded entities and does not load chunks. It skips players and entities carrying a player. The client must have the mod that registers each selected entity type. SeeU Extra copies common state such as position, rotation, velocity, pose, flags, and equipment; renderers that depend on custom tracked data can differ from the server entity.
+Paper remains player-only; it does not package the addon API or support SeeU Extra.
 
 ## Settings
 
@@ -74,7 +48,6 @@ The client sends changes to the server without a reconnect.
 - Fabric server: `config/seeu-server.json`
 - NeoForge client and server: `config/seeu-client.json`, `config/seeu-server.json`
 - Paper: `plugins/SeeU/config.yml`
-- SeeU Extra client and server: `config/seeu-extra-client.json`, `config/seeu-extra-server.json`
 
 ## Limits
 
@@ -94,5 +67,4 @@ Gradle writes the JARs to:
 - `fabric/build/libs/seeu-fabric-1.21.1-<version>.jar`
 - `neoforge/build/libs/seeu-neoforge-1.21.1-<version>.jar`
 - `paper/build/libs/seeu-paper-1.21.1-<version>.jar`
-- `addons/seeu-extra/fabric/build/libs/seeu-extra-fabric-1.21.1-<version>.jar`
-- `addons/seeu-extra/neoforge/build/libs/seeu-extra-neoforge-1.21.1-<version>.jar`
+- `addon-api/build/libs/seeu-addon-api-1.21.1-<version>.jar`

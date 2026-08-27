@@ -52,11 +52,9 @@ jobs:
             fabric/build/libs/*.jar
             neoforge/build/libs/*.jar
             paper/build/libs/*.jar
-            addons/seeu-extra/fabric/build/libs/*.jar
-            addons/seeu-extra/neoforge/build/libs/*.jar
+            addon-api/build/libs/*.jar
             !fabric/build/libs/*-sources.jar
             !neoforge/build/libs/*-sources.jar
             !paper/build/libs/*-dev.jar
             !paper/build/libs/*-sources.jar
-            !addons/seeu-extra/fabric/build/libs/*-sources.jar
-            !addons/seeu-extra/neoforge/build/libs/*-sources.jar
+            !addon-api/build/libs/*-sources.jar

@@ -49,7 +49,7 @@ class FabricAddonFragmentationTest {
 
         AddonEnvelope envelope = new AddonEnvelope(
                 1,
-                "seeu_extra",
+                "test_addon",
                 bytes(AddonLimits.MAX_DATA_BYTES)
         );
         byte[] encodedData = FabricAddonWireCodec.encodeData(envelope);
