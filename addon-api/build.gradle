@@ -1,0 +1,57 @@
+plugins {
+    id "java-library"
+    id "maven-publish"
+}
+
+base {
+    archivesName = "seeu-addon-api-${project.minecraft_version}"
+}
+
+sourceSets {
+    main {
+        java {
+            srcDir project(":common").file("src/main/java")
+            include "dev/keryeshka/voxyseeu/api/addon/**"
+        }
+    }
+    test {
+        java {
+            srcDir project(":common").file("src/test/java")
+            include "dev/keryeshka/voxyseeu/api/addon/**"
+        }
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(project.java_version as int)
+    }
+
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = "UTF-8"
+    options.release = project.java_version as int
+}
+
+dependencies {
+    compileOnlyApi "io.netty:netty-buffer:${project.netty_version}"
+    testImplementation "io.netty:netty-buffer:${project.netty_version}"
+    testImplementation platform("org.junit:junit-bom:5.12.2")
+    testImplementation "org.junit.jupiter:junit-jupiter"
+    testRuntimeOnly "org.junit.platform:junit-platform-launcher"
+}
+
+tasks.named("test") {
+    useJUnitPlatform()
+}
+
+publishing {
+    publications {
+        create("mavenJava", MavenPublication) {
+            artifactId = base.archivesName.get()
+            from components.java
+        }
+    }
+}

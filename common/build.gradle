@@ -27,6 +27,11 @@ dependencies {
     testRuntimeOnly "org.junit.platform:junit-platform-launcher"
 }
 
+sourceSets {
+    main.java.exclude "dev/keryeshka/voxyseeu/api/addon/**"
+    test.java.exclude "dev/keryeshka/voxyseeu/api/addon/**"
+}
+
 tasks.named("test") {
     useJUnitPlatform()
 }
