@@ -12,45 +12,16 @@ Fabric and NeoForge builds also expose the SeeU addon bus. Addons negotiate thei
 
 - Minecraft `1.21.11`
 - Java `21`
-- SeeU `0.9.0` on Fabric or NeoForge clients
-- SeeU `0.9.0` on Fabric or NeoForge servers, or SeeU Paper `0.9`
+- SeeU `0.9.1` on Fabric or NeoForge clients
+- SeeU `0.9.1` on Fabric or NeoForge servers, or SeeU Paper `0.9.1`
 
 Install client and server files from the same release. Voxy and Distant Horizons are optional; SeeU does not depend on either terrain renderer.
 
 ## SeeU Extra
 
-SeeU Extra `0.1.0` is a separate addon for non-player entities. It runs only on Fabric and NeoForge. Install SeeU and SeeU Extra on the modded server and on every client that should render these entities. Paper remains player-only and does not load SeeU Extra.
+[SeeU Extra](https://github.com/cat4blep/SeeU-Extra) is maintained in its own repository. It adds long-range non-player entity rendering to Fabric and NeoForge through SeeU's addon API and transport stack. Install matching SeeU and SeeU Extra versions on both the modded server and its clients.
 
-SeeU Extra does not register a separate network channel. It sends its handshake and snapshots through the addon API provided by SeeU `0.9.0`.
-
-The server writes `config/seeu-extra-server.json`. Its default mode is `DISABLED`, which prevents entity scans until an administrator opts in.
-
-- `DISABLED` sends no non-player entities.
-- `SELECTED` matches exact entity IDs in `types` and exact registry namespaces in `namespaces`.
-- `ALL` matches every eligible loaded non-player entity.
-- `excludedTypes` and `excludedNamespaces` override both active modes.
-- `maximumDistanceBlocks`, `minimumDistanceBlocks`, `entityCap`, and `updateIntervalTicks` limit work and traffic.
-
-Example server config:
-
-```json
-{
-  "configVersion": 1,
-  "mode": "SELECTED",
-  "types": ["minecraft:zombie"],
-  "namespaces": ["iceandfire"],
-  "excludedTypes": [],
-  "excludedNamespaces": [],
-  "maximumDistanceBlocks": 8192,
-  "minimumDistanceBlocks": 0,
-  "entityCap": 128,
-  "updateIntervalTicks": 4
-}
-```
-
-The client writes `config/seeu-extra-client.json` with an enable switch and its distance limits. The server uses the lower maximum distance and the higher minimum distance from the two configs. Restart the client or server after editing either SeeU Extra config; both files are loaded during initialization.
-
-The addon scans only entities already loaded by the server. It does not load chunks, never proxies players, and skips an entity if it carries a player. Each client must have the mod that registers a selected entity type. Common position, rotation, velocity, pose, flags, and equipment are copied. A renderer that relies on custom tracked data may still look different from the server entity.
+Paper remains player-only; it does not package the addon API or support SeeU Extra.
 
 ## Settings
 
@@ -64,7 +35,6 @@ The screen controls distant-player rendering, render and animation distance, the
 - Fabric server: `config/seeu-server.json`
 - NeoForge client and server: `config/seeu-client.json`, `config/seeu-server.json`
 - Paper: `plugins/SeeU/config.yml`
-- SeeU Extra: `config/seeu-extra-client.json`, `config/seeu-extra-server.json`
 
 ## Compatibility limits
 
@@ -78,8 +48,7 @@ Player protocol version `5` requires matching client and server/plugin builds. A
 
 Gradle writes the distributable files to:
 
-- `fabric/build/libs/seeu-fabric-1.21.11-0.9.0.jar`
-- `neoforge/build/libs/seeu-neoforge-1.21.11-0.9.0.jar`
-- `paper/build/libs/seeu-paper-1.21.11-0.9.jar`
-- `addons/seeu-extra/fabric/build/libs/seeu-extra-fabric-1.21.11-0.1.0.jar`
-- `addons/seeu-extra/neoforge/build/libs/seeu-extra-neoforge-1.21.11-0.1.0.jar`
+- `fabric/build/libs/seeu-fabric-1.21.11-0.9.1.jar`
+- `neoforge/build/libs/seeu-neoforge-1.21.11-0.9.1.jar`
+- `paper/build/libs/seeu-paper-1.21.11-0.9.1.jar`
+- `addon-api/build/libs/seeu-addon-api-1.21.11-0.9.1.jar`

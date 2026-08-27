@@ -51,10 +51,12 @@ tasks.withType(JavaCompile).configureEach {
 
 tasks.named("jar") {
     from(project(":common").sourceSets.main.output)
+    from(project(":addon-api").sourceSets.main.output)
 }
 
 tasks.named("sourcesJar") {
     from(project(":common").sourceSets.main.allSource)
+    from(project(":addon-api").sourceSets.main.allSource)
 }
 
 dependencies {
@@ -67,6 +69,12 @@ dependencies {
 
     implementation project(":common")
     clientImplementation project(":common")
+    implementation(project(":addon-api")) {
+        transitive = false
+    }
+    clientImplementation(project(":addon-api")) {
+        transitive = false
+    }
 }
 
 processResources {
