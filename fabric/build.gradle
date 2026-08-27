@@ -28,6 +28,9 @@ loom {
     }
 }
 
+sourceSets.client.java.srcDir(project(":common").file("src/client/java"))
+sourceSets.main.java.srcDir(project(":common").file("src/server/java"))
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(project.java_version as int)

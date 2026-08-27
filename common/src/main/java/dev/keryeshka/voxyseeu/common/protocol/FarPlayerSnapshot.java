@@ -4,7 +4,6 @@ import java.util.UUID;
 
 public record FarPlayerSnapshot(
         UUID uuid,
-        String name,
         double x,
         double y,
         double z,
@@ -14,24 +13,23 @@ public record FarPlayerSnapshot(
         boolean sneaking,
         boolean gliding,
         boolean swimming,
-        FarItemSnapshot mainHand,
-        FarItemSnapshot offHand,
-        FarItemSnapshot feet,
-        FarItemSnapshot legs,
-        FarItemSnapshot chest,
-        FarItemSnapshot head,
-        FarVehicleSnapshot vehicle
+        FarVehicleSnapshot vehicle,
+        FarPlayerMetadata metadata
 ) {
-    public FarPlayerSnapshot {
-        mainHand = sanitize(mainHand);
-        offHand = sanitize(offHand);
-        feet = sanitize(feet);
-        legs = sanitize(legs);
-        chest = sanitize(chest);
-        head = sanitize(head);
-    }
-
-    private static FarItemSnapshot sanitize(FarItemSnapshot snapshot) {
-        return snapshot == null ? FarItemSnapshot.EMPTY : snapshot;
+    public FarPlayerSnapshot withoutMetadata() {
+        return metadata == null ? this : new FarPlayerSnapshot(
+                uuid,
+                x,
+                y,
+                z,
+                bodyYaw,
+                headYaw,
+                pitch,
+                sneaking,
+                gliding,
+                swimming,
+                vehicle,
+                null
+        );
     }
 }
