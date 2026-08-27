@@ -2,7 +2,10 @@ package dev.keryeshka.voxyseeu.common.server;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import dev.keryeshka.voxyseeu.common.ConfigMigrations;
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
+import dev.keryeshka.voxyseeu.common.UpdateIntervalMigration;
+import dev.keryeshka.voxyseeu.common.protocol.PacketCodec;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -11,8 +14,7 @@ import java.nio.file.StandardCopyOption;
 
 public final class SeeUServerConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final int CURRENT_CONFIG_VERSION = 3;
-    private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
+    private static final int CURRENT_CONFIG_VERSION = 4;
 
     public int configVersion = CURRENT_CONFIG_VERSION;
     public boolean enabled = true;
@@ -36,12 +38,20 @@ public final class SeeUServerConfig {
             if (config == null) {
                 throw new IllegalStateException("Config is empty: " + configPath);
             }
-            if (config.configVersion < CURRENT_CONFIG_VERSION
-                    && config.minimumProxyDistanceBlocks == LEGACY_GAP_DISTANCE_BLOCKS) {
-                config.minimumProxyDistanceBlocks = SharedDefaults.DEFAULT_MIN_PROXY_DISTANCE_BLOCKS;
-            }
+            config.minimumProxyDistanceBlocks = ConfigMigrations.minimumProxyDistance(
+                    config.configVersion,
+                    config.minimumProxyDistanceBlocks
+            );
+            config.updateIntervalTicks = UpdateIntervalMigration.migrate(
+                    config.configVersion,
+                    CURRENT_CONFIG_VERSION,
+                    config.updateIntervalTicks
+            );
             config.configVersion = CURRENT_CONFIG_VERSION;
-            config.updateIntervalTicks = Math.max(1, config.updateIntervalTicks);
+            config.updateIntervalTicks = Math.min(
+                    PacketCodec.MAX_UPDATE_INTERVAL_TICKS,
+                    Math.max(1, config.updateIntervalTicks)
+            );
             config.maxRenderDistanceBlocks = Math.max(64, config.maxRenderDistanceBlocks);
             config.minimumProxyDistanceBlocks = Math.max(0, config.minimumProxyDistanceBlocks);
             Files.writeString(configPath, GSON.toJson(config));

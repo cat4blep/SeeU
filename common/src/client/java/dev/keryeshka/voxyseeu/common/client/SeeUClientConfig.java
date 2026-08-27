@@ -1,5 +1,6 @@
 package dev.keryeshka.voxyseeu.common.client;
 
+import dev.keryeshka.voxyseeu.common.ConfigMigrations;
 import dev.keryeshka.voxyseeu.common.SharedDefaults;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -12,7 +13,6 @@ import java.nio.file.StandardCopyOption;
 public final class SeeUClientConfig {
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static final int CURRENT_CONFIG_VERSION = 6;
-    private static final int LEGACY_GAP_DISTANCE_BLOCKS = 192;
 
     public int configVersion = CURRENT_CONFIG_VERSION;
     public boolean enabled = true;
@@ -42,21 +42,19 @@ public final class SeeUClientConfig {
             throw new IllegalStateException("Config is empty: " + configPath);
         }
         config.configPath = configPath;
-        if (config.configVersion < 3
-                && config.minimumProxyDistanceBlocks == LEGACY_GAP_DISTANCE_BLOCKS) {
-            config.minimumProxyDistanceBlocks = SharedDefaults.DEFAULT_MIN_PROXY_DISTANCE_BLOCKS;
-        }
-        if (config.configVersion < 5 && config.maximumAnimationDistanceBlocks <= 0) {
-            config.maximumAnimationDistanceBlocks = Math.max(
-                    64,
-                    config.maximumRenderDistanceBlocks > 0
-                            ? config.maximumRenderDistanceBlocks
-                            : SharedDefaults.DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS
-            );
-        }
-        if (config.configVersion < 6) {
-            config.disableVanillaFog = SharedDefaults.DEFAULT_DISABLE_VANILLA_FOG;
-        }
+        config.minimumProxyDistanceBlocks = ConfigMigrations.minimumProxyDistance(
+                config.configVersion,
+                config.minimumProxyDistanceBlocks
+        );
+        config.maximumAnimationDistanceBlocks = ConfigMigrations.maximumAnimationDistance(
+                config.configVersion,
+                config.maximumAnimationDistanceBlocks,
+                config.maximumRenderDistanceBlocks
+        );
+        config.disableVanillaFog = ConfigMigrations.disableVanillaFog(
+                config.configVersion,
+                config.disableVanillaFog
+        );
         config.save();
         return config;
     }

@@ -1,8 +1,8 @@
 package dev.keryeshka.voxyseeu.common;
 
 public final class SharedDefaults {
-    public static final int PROTOCOL_VERSION = 4;
-    public static final int DEFAULT_UPDATE_INTERVAL_TICKS = 10;
+    public static final int PROTOCOL_VERSION = 5;
+    public static final int DEFAULT_UPDATE_INTERVAL_TICKS = 2;
     public static final int DEFAULT_MAX_RENDER_DISTANCE_BLOCKS = 8192;
     public static final int DEFAULT_MIN_PROXY_DISTANCE_BLOCKS = 0;
     public static final int DEFAULT_MAX_ANIMATION_DISTANCE_BLOCKS = DEFAULT_MAX_RENDER_DISTANCE_BLOCKS;

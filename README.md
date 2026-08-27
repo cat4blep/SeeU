@@ -12,6 +12,8 @@ SeeU renders players beyond vanilla's entity-tracking range. A `Paper`, `Fabric`
 
 Each player controls whether the server shares their proxy and the proxy's maximum viewing distance.
 
+SeeU provides an addon bus on Fabric and NeoForge. Addons negotiate their own protocol through SeeU and send bounded payloads over SeeU-owned channels. One failing addon closes its own session without closing SeeU or another addon.
+
 ## Requirements
 
 - Minecraft `26.2`
@@ -20,6 +22,40 @@ Each player controls whether the server shares their proxy and the proxy's maxim
 - `Paper` plugin, Fabric server mod, or NeoForge server mod
 
 Install the matching client and server JARs from the same SeeU release. Join the server, then move beyond vanilla's player-rendering range. `Voxy` and `Distant Horizons` are optional terrain mods; SeeU renders the player proxies.
+
+The default schedule sends player movement every two server ticks. The client adjusts interpolation to the received cadence and snaps teleports of 32 blocks or more. Servers that kept the old ten-tick value migrate to two ticks; custom intervals stay unchanged.
+
+## SeeU Extra
+
+SeeU Extra is a separate Fabric and NeoForge addon for non-player entities. Install SeeU and SeeU Extra on both the modded server and each client. Paper stays player-only and cannot run SeeU Extra.
+
+The server writes `config/seeu-extra-server.json`. It starts with `mode` set to `DISABLED`, so the addon performs no entity scan until an administrator enables it.
+
+- `SELECTED` accepts entity IDs from `types` and registry namespaces from `namespaces`.
+- `ALL` accepts eligible loaded non-player entities.
+- `excludedTypes` and `excludedNamespaces` take precedence in both modes.
+- `maximumDistanceBlocks`, `minimumDistanceBlocks`, `entityCap`, and `updateIntervalTicks` bound server work and traffic.
+
+Example:
+
+```json
+{
+  "configVersion": 1,
+  "mode": "SELECTED",
+  "types": ["minecraft:zombie"],
+  "namespaces": ["iceandfire"],
+  "excludedTypes": [],
+  "excludedNamespaces": [],
+  "maximumDistanceBlocks": 8192,
+  "minimumDistanceBlocks": 0,
+  "entityCap": 128,
+  "updateIntervalTicks": 4
+}
+```
+
+The client writes `config/seeu-extra-client.json` with its enable switch and distance limits. The server chooses the lower maximum distance and the higher minimum distance from both configurations. Restart the client or server after editing either file.
+
+SeeU Extra reads loaded entities and does not load chunks. It skips players and entities carrying a player. The client must have the mod that registers each selected entity type. SeeU Extra copies common state such as position, rotation, velocity, pose, flags, and equipment; renderers that depend on custom tracked data can differ from the server entity.
 
 ## Settings
 
@@ -40,12 +76,14 @@ The client sends changes to the server without a reconnect.
 - Fabric server: `config/seeu-server.json`
 - NeoForge client and server: `config/seeu-client.json`, `config/seeu-server.json`
 - Paper: `plugins/SeeU/config.yml`
+- SeeU Extra client and server: `config/seeu-extra-client.json`, `config/seeu-extra-server.json`
 
 ## Limits
 
 - SeeU creates proxies for players and their ridden entities.
-- Protocol version `4` requires matching client and server/plugin updates.
+- Player protocol version `5` requires matching client and server/plugin updates.
 - A client without a server sender receives no player snapshots.
+- The addon bus accepts up to 32 addons, 32 KiB handshakes, and 1 MiB messages. Each addon can declare a smaller message limit.
 
 ## Build
 
@@ -58,6 +96,8 @@ Gradle writes the JARs to:
 - `fabric/build/libs/seeu-fabric-<version>.jar`
 - `neoforge/build/libs/seeu-neoforge-<version>.jar`
 - `paper/build/libs/seeu-paper-<version>.jar`
+- `addons/seeu-extra/fabric/build/libs/seeu-extra-fabric-<version>.jar`
+- `addons/seeu-extra/neoforge/build/libs/seeu-extra-neoforge-<version>.jar`
 
 ## License
 
