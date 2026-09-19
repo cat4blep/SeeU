@@ -51,7 +51,7 @@ The client sends changes to the server without a reconnect.
 
 ## Limits
 
-- SeeU creates proxies for players and their ridden entities.
+- SeeU creates proxies for players and their vanilla ridden entities. Modded vehicles, including Create trains and contraptions, are not recreated at a distance; their riders remain visible at the synchronized player positions.
 - Player protocol version `5` requires matching client and server/plugin updates.
 - A client without a server sender receives no player snapshots.
 - The addon bus accepts up to 32 addons, 32 KiB handshakes, and 1 MiB messages. Each addon can declare a smaller message limit.

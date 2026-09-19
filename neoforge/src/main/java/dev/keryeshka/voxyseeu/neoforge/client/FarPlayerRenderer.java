@@ -251,7 +251,9 @@ final class FarPlayerRenderer {
 
     private static Entity createVehicleProxy(ClientLevel level, String entityTypeId) {
         ResourceLocation typeId = ResourceLocation.tryParse(entityTypeId);
-        if (typeId == null) {
+        // Snapshots lack mod-specific spawn data, such as Create's contraption.
+        // Mounting or rendering an uninitialized modded vehicle can crash the client.
+        if (typeId == null || !"minecraft".equals(typeId.getNamespace())) {
             return null;
         }
         EntityType<?> entityType = BuiltInRegistries.ENTITY_TYPE.get(typeId);
