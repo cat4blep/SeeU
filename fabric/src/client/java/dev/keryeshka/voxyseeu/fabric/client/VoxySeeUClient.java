@@ -41,7 +41,7 @@ public final class VoxySeeUClient implements ClientModInitializer {
     private static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
             "key.seeu.open_config",
             InputConstants.Type.KEYBOARD,
-            InputConstants.KEY_F8,
+            InputConstants.UNKNOWN.getValue(),
             SEEU_KEY_CATEGORY
     );
 
@@ -119,6 +119,14 @@ public final class VoxySeeUClient implements ClientModInitializer {
 
     private static void applyConfig(SeeUClientConfig updatedConfig) {
         config.copyFrom(updatedConfig);
+        saveConfig();
+    }
+
+    static SeeUClientConfig getConfig() {
+        return config;
+    }
+
+    static void saveConfig() {
         config.save();
         sendHello();
     }

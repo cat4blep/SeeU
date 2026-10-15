@@ -17,6 +17,9 @@
     "client": [
       "dev.keryeshka.voxyseeu.fabric.client.VoxySeeUClient"
     ],
+    "sodium:config_api_user": [
+      "dev.keryeshka.voxyseeu.fabric.client.SeeUSodiumConfig"
+    ],
     "modmenu": [
       "dev.keryeshka.voxyseeu.fabric.client.SeeUModMenuIntegration"
     ]

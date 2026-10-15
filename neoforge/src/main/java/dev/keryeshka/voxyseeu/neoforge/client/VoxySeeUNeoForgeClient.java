@@ -53,7 +53,7 @@ public final class VoxySeeUNeoForgeClient {
     private static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
             "key.seeu.open_config",
             InputConstants.Type.KEYBOARD,
-            InputConstants.KEY_F8,
+            InputConstants.UNKNOWN.getValue(),
             SEEU_KEY_CATEGORY
     );
     private static final FarPlayerTracker TRACKER = new FarPlayerTracker();
@@ -169,6 +169,16 @@ public final class VoxySeeUNeoForgeClient {
     private static void applyConfig(SeeUClientConfig updatedConfig) {
         ensureLoaded();
         config.copyFrom(updatedConfig);
+        saveConfig();
+    }
+
+    static SeeUClientConfig getConfig() {
+        ensureLoaded();
+        return config;
+    }
+
+    static void saveConfig() {
+        ensureLoaded();
         config.save();
         sendHello();
     }

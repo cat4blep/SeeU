@@ -27,3 +27,6 @@ SeeU renders players beyond the vanilla entity-tracking range.
     versionRange="${minecraft_version_range}"
     ordering="NONE"
     side="BOTH"
+
+[modproperties.${mod_id}]
+"sodium:config_api_user" = "dev.keryeshka.voxyseeu.neoforge.client.SeeUSodiumConfig"

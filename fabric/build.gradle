@@ -66,6 +66,7 @@ dependencies {
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     clientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     clientImplementation "net.fabricmc.fabric-api:fabric-rendering-v1:${project.fabric_rendering_api_version}"
+    clientCompileOnly "net.caffeinemc:sodium-fabric-api:${project.sodium_version}"
     clientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
     compileOnly "maven.modrinth:vanish:1.6.16+26.3"
 
