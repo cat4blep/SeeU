@@ -4,6 +4,8 @@ Discuss SeeU on [Discord](https://discord.gg/fQqJsPmQrP).
 
 ## SeeU
 
+The `26.3` branch contains the Fabric, NeoForge, and Paper builds for Minecraft `26.3`. Build all platforms together with `./gradlew build`.
+
 SeeU renders players beyond vanilla's entity-tracking range. A `Paper`, `Fabric`, or `NeoForge` server sends player snapshots to a `Fabric` or `NeoForge` client. After vanilla stops rendering a player, the client replaces that entity with a remote-player proxy that retains:
 
 - pose, yaw, pitch, and name
@@ -16,7 +18,7 @@ SeeU provides an addon bus on Fabric and NeoForge. Addons negotiate their own pr
 
 ## Requirements
 
-- Minecraft `26.2`
+- Minecraft `26.3`
 - Java `25`
 - `Fabric` or `NeoForge` client
 - `Paper` plugin, Fabric server mod, or NeoForge server mod

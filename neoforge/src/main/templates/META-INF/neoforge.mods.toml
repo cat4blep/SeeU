@@ -8,7 +8,7 @@ modId="${mod_id}"
 version="${mod_version}"
 displayName="${mod_name}"
 displayURL="https://github.com/cat4blep/SeeU"
-logoFile="assets/seeu/icon.png"
+iconFile="assets/seeu/icon.png"
 authors="Keryesh4ka"
 description='''
 SeeU renders players beyond the vanilla entity-tracking range.

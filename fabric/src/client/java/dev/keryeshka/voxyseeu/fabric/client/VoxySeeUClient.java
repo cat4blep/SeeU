@@ -34,15 +34,14 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.material.FogType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.lwjgl.glfw.GLFW;
 
 public final class VoxySeeUClient implements ClientModInitializer {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
     private static final KeyMapping.Category SEEU_KEY_CATEGORY = KeyMapping.Category.register(Identifier.parse("seeu:general"));
     private static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
             "key.seeu.open_config",
-            InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_F8,
+            InputConstants.Type.KEYBOARD,
+            InputConstants.KEY_F8,
             SEEU_KEY_CATEGORY
     );
 
