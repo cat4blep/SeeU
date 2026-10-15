@@ -12,8 +12,8 @@ Fabric and NeoForge builds also expose the SeeU addon bus. Addons negotiate thei
 
 - Minecraft `1.21.11`
 - Java `21`
-- SeeU `0.9.1` on Fabric or NeoForge clients
-- SeeU `0.9.1` on Fabric or NeoForge servers, or SeeU Paper `0.9.1`
+- SeeU `0.9.5` on Fabric or NeoForge clients
+- SeeU `0.9.5` on Fabric or NeoForge servers, or SeeU Paper `0.9.5`
 
 Install client and server files from the same release. Voxy and Distant Horizons are optional; SeeU does not depend on either terrain renderer.
 
@@ -52,7 +52,7 @@ Player protocol version `5` requires matching client and server/plugin builds. A
 
 Gradle writes the distributable files to:
 
-- `fabric/build/libs/seeu-fabric-1.21.11-0.9.1.jar`
-- `neoforge/build/libs/seeu-neoforge-1.21.11-0.9.1.jar`
-- `paper/build/libs/seeu-paper-1.21.11-0.9.1.jar`
-- `addon-api/build/libs/seeu-addon-api-1.21.11-0.9.1.jar`
+- `fabric/build/libs/seeu-fabric-1.21.11-0.9.5.jar`
+- `neoforge/build/libs/seeu-neoforge-1.21.11-0.9.5.jar`
+- `paper/build/libs/seeu-paper-1.21.11-0.9.5.jar`
+- `addon-api/build/libs/seeu-addon-api-1.21.11-0.9.5.jar`
