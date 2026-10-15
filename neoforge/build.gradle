@@ -8,6 +8,16 @@ base {
     archivesName = "seeu-neoforge-1.21.11"
 }
 
+repositories {
+    maven {
+        name = "CaffeineMC"
+        url = "https://maven.caffeinemc.net/releases"
+        content {
+            includeGroup "net.caffeinemc"
+        }
+    }
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(project.java_version as int)
@@ -57,6 +67,7 @@ tasks.named("sourcesJar") {
 }
 
 dependencies {
+    compileOnly "net.caffeinemc:sodium-neoforge-api:${project.sodium_api_version}"
     implementation project(":common")
     implementation(project(":addon-api")) {
         transitive = false

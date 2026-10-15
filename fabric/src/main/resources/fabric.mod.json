@@ -19,6 +19,9 @@
     ],
     "modmenu": [
       "dev.keryeshka.voxyseeu.fabric.client.SeeUModMenuIntegration"
+    ],
+    "sodium:config_api_user": [
+      "dev.keryeshka.voxyseeu.fabric.client.SeeUSodiumConfig"
     ]
   },
   "mixins": [

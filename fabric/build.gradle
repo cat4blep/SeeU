@@ -17,6 +17,13 @@ base {
 
 repositories {
     maven {
+        name = "CaffeineMC"
+        url = "https://maven.caffeinemc.net/releases"
+        content {
+            includeGroup "net.caffeinemc"
+        }
+    }
+    maven {
         name = "Terraformers"
         url = "https://maven.terraformersmc.com/"
         content {
@@ -66,6 +73,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     modClientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     modClientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+    modClientCompileOnly "net.caffeinemc:sodium-fabric-api:${project.sodium_api_version}"
 
     implementation project(":common")
     clientImplementation project(":common")
