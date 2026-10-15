@@ -31,16 +31,19 @@ Paper remains player-only; it does not package the addon API or support SeeU Ext
 
 ## Settings
 
-`F8` is the default settings key. Remap it under **Options > Controls > Key Binds**. On Fabric, Mod Menu adds a **Configure** button to the SeeU entry. On NeoForge, open **Mods > SeeU > Config**.
+The settings key is unassigned by default. Assign it under **Options > Controls > Key Binds**; existing bindings are preserved. With Sodium 0.8.12 or newer for Minecraft 1.21.1, all SeeU settings are also available under **Options > Video Settings > SeeU**. Apply saves the settings and updates the server; Undo or Escape keeps the previous settings. Sodium is optional. The integration uses its [Config API](https://github.com/CaffeineMC/sodium/wiki/CaffeineMC-Maven-%26-Config-API). On Fabric, Mod Menu adds a **Configure** button to the SeeU entry. On NeoForge, open **Mods > SeeU > Config**.
 
 - enable distant-player rendering
 - set local render and animation distances
 - set the handoff distance from vanilla entities to proxies
 - show or hide distant-player name tags
+- disable vanilla fog
 - allow or block sharing your proxy
 - limit how far other players can receive your proxy
 
 The client sends changes to the server without a reconnect.
+
+When using Sodium's search, clear the search before reducing the maximum render distance. If the dependent distance sliders show pending changes after Apply, clear the search and apply once more. The saved settings remain valid.
 
 ## Config files
 

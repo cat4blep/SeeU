@@ -1,15 +1,7 @@
-buildscript {
-    repositories {
-        maven { url = "https://maven.fabricmc.net/" }
-        mavenCentral()
-    }
-    dependencies {
-        classpath "net.fabricmc:fabric-loom:${project.loom_version}"
-    }
+plugins {
+    id "net.fabricmc.fabric-loom-remap" version "${loom_version}"
+    id "maven-publish"
 }
-
-apply plugin: "fabric-loom"
-apply plugin: "maven-publish"
 
 base {
     archivesName = "seeu-fabric-1.21.1"
@@ -68,6 +60,7 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     modClientImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     modClientCompileOnly "com.terraformersmc:modmenu:${project.modmenu_version}"
+    modClientCompileOnly "net.caffeinemc:sodium-fabric-api:${project.sodium_api_version}"
 
     implementation project(":common")
     clientImplementation project(":common")
