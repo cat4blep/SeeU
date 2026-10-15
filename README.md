@@ -31,7 +31,7 @@ The default schedule sends player movement every two server ticks. The client ad
 
 ## Settings
 
-`F8` is the default settings key. Remap it under **Options > Controls > Key Binds**. On Fabric, Mod Menu adds a **Configure** button to the SeeU entry. On NeoForge, open **Mods > SeeU > Config**.
+The settings key is unbound by default. Assign it under **Options > Controls > Key Binds**. Existing key assignments are preserved. On Fabric, Mod Menu adds a **Configure** button to the SeeU entry. On NeoForge, open **Mods > SeeU > Config**.
 
 - enable distant-player rendering
 - set local render and animation distances
@@ -40,7 +40,11 @@ The default schedule sends player movement every two server ticks. The client ad
 - allow or block sharing your proxy
 - limit how far other players can receive your proxy
 
+With Sodium 0.8.10 or newer for this Minecraft version, these settings also appear on the **SeeU > Distant players** page in **Options > Video Settings**. Apply saves the changes; Undo or Escape discards them. Sodium is optional. The integration uses its [Config API](https://github.com/CaffeineMC/sodium/wiki/CaffeineMC-Maven-%26-Config-API).
+
 The client sends changes to the server without a reconnect.
+
+When using Sodium's search, clear the search before reducing the maximum render distance. If the dependent distance sliders show pending changes after Apply, clear the search and apply once more. The saved settings remain valid.
 
 ## Config files
 

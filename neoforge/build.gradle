@@ -62,6 +62,7 @@ tasks.named("sourcesJar") {
 dependencies {
     implementation project(":common")
     implementation project(":addon-api")
+    compileOnly "net.caffeinemc:sodium-neoforge-api:${project.sodium_version}"
     compileOnly "io.netty:netty-buffer:${project.netty_version}"
 }
 

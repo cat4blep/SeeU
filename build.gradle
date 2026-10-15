@@ -4,6 +4,13 @@ allprojects {
 
     repositories {
         mavenCentral()
+        maven {
+            name = "CaffeineMC"
+            url = "https://maven.caffeinemc.net/releases"
+            content {
+                includeGroup "net.caffeinemc"
+            }
+        }
         maven { url = "https://maven.neoforged.net/releases" }
         maven { url = "https://maven.fabricmc.net/" }
         maven { url = "https://repo.papermc.io/repository/maven-public/" }

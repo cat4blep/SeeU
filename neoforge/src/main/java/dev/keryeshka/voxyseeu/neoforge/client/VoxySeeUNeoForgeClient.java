@@ -41,7 +41,6 @@ import net.neoforged.neoforge.client.event.ViewportEvent;
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory;
 import net.neoforged.neoforge.client.network.ClientPacketDistributor;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,7 +53,7 @@ public final class VoxySeeUNeoForgeClient {
     private static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
             "key.seeu.open_config",
             InputConstants.Type.KEYSYM,
-            GLFW.GLFW_KEY_F8,
+            InputConstants.UNKNOWN.getValue(),
             SEEU_KEY_CATEGORY
     );
     private static final FarPlayerTracker TRACKER = new FarPlayerTracker();
@@ -170,6 +169,16 @@ public final class VoxySeeUNeoForgeClient {
     private static void applyConfig(SeeUClientConfig updatedConfig) {
         ensureLoaded();
         config.copyFrom(updatedConfig);
+        saveConfig();
+    }
+
+    static SeeUClientConfig getConfig() {
+        ensureLoaded();
+        return config;
+    }
+
+    static void saveConfig() {
+        ensureLoaded();
         config.save();
         sendHello();
     }
