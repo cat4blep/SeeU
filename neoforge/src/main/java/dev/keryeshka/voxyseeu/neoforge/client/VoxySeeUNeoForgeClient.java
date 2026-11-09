@@ -202,18 +202,16 @@ public final class VoxySeeUNeoForgeClient {
     }
 
     private static void sendHello() {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (minecraft.getConnection() == null) {
-            return;
-        }
-        ClientPacketDistributor.sendToServer(new ClientHelloPayload(new ClientHelloPacket(
-                SharedDefaults.PROTOCOL_VERSION,
-                config.enabled,
-                config.maximumRenderDistanceBlocks,
-                config.minimumProxyDistanceBlocks,
-                config.shareSelf,
-                config.shareMaximumDistanceBlocks
-        )));
+        var connection = Minecraft.getInstance().getConnection();
+        if (connection != null && connection.hasChannel(ClientHelloPayload.TYPE))
+            ClientPacketDistributor.sendToServer(new ClientHelloPayload(new ClientHelloPacket(
+                    SharedDefaults.PROTOCOL_VERSION,
+                    config.enabled,
+                    config.maximumRenderDistanceBlocks,
+                    config.minimumProxyDistanceBlocks,
+                    config.shareSelf,
+                    config.shareMaximumDistanceBlocks
+            )));
     }
 
     private static void connectAddons() {
