@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Wait for the server to advertise the SeeU channel before sending the NeoForge handshake.
+
 ## 0.9.5
 
 - Leave the settings key unbound by default.
