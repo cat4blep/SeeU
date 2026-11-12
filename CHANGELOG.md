@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.9.6
 
 - Wait for the server to advertise the SeeU channel before sending the NeoForge handshake.
 
