@@ -63,6 +63,7 @@ public final class VoxySeeUNeoForgeClient {
     private static final SeeUClientAddons CLIENT_ADDONS = SeeUClientAddons.getInstance();
     private static VoxySeeUClientConfig config;
     private static FarPlayerRenderer renderer;
+    private static boolean helloPending;
 
     public VoxySeeUNeoForgeClient(ModContainer container) {
         container.registerExtensionPoint(
@@ -92,13 +93,14 @@ public final class VoxySeeUNeoForgeClient {
         ensureLoaded();
         TRACKER.clear();
         renderer.clear();
-        LOGGER.info("Sending SeeU hello to server");
+        helloPending = true;
         sendHello();
         connectAddons();
     }
 
     @SubscribeEvent
     public static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
+        helloPending = false;
         if (renderer != null) {
             renderer.clear();
         }
@@ -109,6 +111,10 @@ public final class VoxySeeUNeoForgeClient {
     @SubscribeEvent
     public static void onClientTick(ClientTickEvent.Post event) {
         ensureLoaded();
+        // Paper may advertise its plugin channels after the login event.
+        if (helloPending) {
+            sendHello();
+        }
         Minecraft minecraft = Minecraft.getInstance();
         while (OPEN_CONFIG_KEY.consumeClick()) {
             minecraft.setScreen(createConfigScreen(minecraft.screen));
@@ -207,8 +213,8 @@ public final class VoxySeeUNeoForgeClient {
     }
 
     private static void sendHello() {
-        Minecraft minecraft = Minecraft.getInstance();
-        if (config == null || minecraft.getConnection() == null) {
+        var connection = Minecraft.getInstance().getConnection();
+        if (config == null || connection == null || !connection.hasChannel(ClientHelloPayload.TYPE)) {
             return;
         }
         ClientPacketDistributor.sendToServer(new ClientHelloPayload(new ClientHelloPacket(
@@ -219,6 +225,10 @@ public final class VoxySeeUNeoForgeClient {
                 config.shareSelf,
                 config.shareMaximumDistanceBlocks
         )));
+        if (helloPending) {
+            helloPending = false;
+            LOGGER.info("Sent SeeU hello to server");
+        }
     }
 
     private static void connectAddons() {
