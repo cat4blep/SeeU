@@ -8,6 +8,7 @@ import dev.keryeshka.voxyseeu.fabric.client.config.VoxySeeUClientConfig;
 import net.fabricmc.fabric.api.client.rendering.v1.world.WorldRenderContext;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.Camera;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.PlayerInfo;
@@ -15,6 +16,8 @@ import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
+import net.minecraft.client.renderer.state.LevelRenderState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.Mth;
@@ -23,6 +26,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -94,7 +98,8 @@ final class FarPlayerRenderer {
             return;
         }
 
-        Vec3 cameraPosition = minecraft.gameRenderer.getMainCamera().position();
+        Camera camera = minecraft.gameRenderer.getMainCamera();
+        Vec3 cameraPosition = camera.position();
         EntityRenderDispatcher dispatcher = minecraft.getEntityRenderDispatcher();
         float partialTick = minecraft.getDeltaTracker().getGameTimeDeltaPartialTick(false);
         Frustum currentFrustum = frustum;
@@ -107,8 +112,7 @@ final class FarPlayerRenderer {
                 * config.maximumRenderDistanceBlocks;
         double maximumAnimationDistanceSquared = (double) config.maximumAnimationDistanceBlocks
                 * config.maximumAnimationDistanceBlocks;
-        double vanillaRenderDistance = minecraft.options.getEffectiveRenderDistance() * 16.0D + 16.0D;
-        double vanillaRenderDistanceSquared = vanillaRenderDistance * vanillaRenderDistance;
+        Set<UUID> vanillaPlayers = collectVanillaPlayers(level, camera, context.worldState());
 
         activePlayers.clear();
         activeVehicles.clear();
@@ -120,11 +124,7 @@ final class FarPlayerRenderer {
                 continue;
             }
 
-            int chunkX = Mth.floor(position.x) >> 4;
-            int chunkZ = Mth.floor(position.z) >> 4;
-            boolean chunkLoaded = level.hasChunk(chunkX, chunkZ);
-            boolean realPlayerStillPresent = level.getPlayerByUUID(tracked.uuid()) != null;
-            if (realPlayerStillPresent && chunkLoaded && distanceSquared <= vanillaRenderDistanceSquared) {
+            if (vanillaPlayers.contains(tracked.uuid())) {
                 continue;
             }
 
@@ -224,6 +224,19 @@ final class FarPlayerRenderer {
             entry.getValue().ejectPassengers();
             return true;
         });
+    }
+
+    private static Set<UUID> collectVanillaPlayers(ClientLevel level, Camera camera, LevelRenderState renderState) {
+        Set<UUID> vanillaPlayers = new HashSet<>();
+        for (var entityState : renderState.entityRenderStates) {
+            if (entityState instanceof AvatarRenderState avatar && level.getEntity(avatar.id) instanceof Player player) {
+                vanillaPlayers.add(player.getUUID());
+            }
+        }
+        if (!camera.isDetached() && camera.entity() instanceof Player player) {
+            vanillaPlayers.add(player.getUUID());
+        }
+        return vanillaPlayers;
     }
 
     private static Entity createVehicleProxy(ClientLevel level, String entityTypeId) {
