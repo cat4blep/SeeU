@@ -22,6 +22,8 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.FabricRenderState;
+import net.fabricmc.fabric.api.client.rendering.v1.RenderStateDataKey;
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -35,8 +37,12 @@ import net.minecraft.world.level.material.FogType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Set;
+import java.util.UUID;
+
 public final class VoxySeeUClient implements ClientModInitializer {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
+    private static final RenderStateDataKey<Set<UUID>> VANILLA_PLAYERS = RenderStateDataKey.create();
     private static final KeyMapping.Category SEEU_KEY_CATEGORY = KeyMapping.Category.register(Identifier.parse("seeu:general"));
     private static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
             "key.seeu.open_config",
@@ -101,10 +107,18 @@ public final class VoxySeeUClient implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(AddonDataPayload.TYPE, (payload, context) ->
                 clientAddons.receiveData(payload.envelope()));
 
+        LevelRenderEvents.END_EXTRACTION.register(context -> {
+            var levelState = context.levelState();
+            ((FabricRenderState) levelState).setData(
+                    VANILLA_PLAYERS,
+                    renderer.collectVanillaPlayers(context.level(), context.camera(), levelState)
+            );
+        });
         LevelRenderEvents.COLLECT_SUBMITS.register(context -> renderer.render(
                 context.poseStack(),
                 context.levelState(),
-                context.submitNodeCollector()
+                context.submitNodeCollector(),
+                ((FabricRenderState) context.levelState()).getDataOrDefault(VANILLA_PLAYERS, Set.of())
         ));
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             while (OPEN_CONFIG_KEY.consumeClick()) {
