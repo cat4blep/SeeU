@@ -1,3 +1,7 @@
+## 0.9.7
+
+- Prevent duplicate player models during the handoff between normal rendering and SeeU proxies.
+
 ## 0.9.6
 
 - Wait for the server to advertise the SeeU channel before sending the NeoForge handshake.
