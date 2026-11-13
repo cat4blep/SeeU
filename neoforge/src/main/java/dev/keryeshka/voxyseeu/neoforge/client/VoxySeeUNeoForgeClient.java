@@ -23,6 +23,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.fog.FogData;
 import net.minecraft.resources.Identifier;
+import net.minecraft.util.context.ContextKey;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -35,6 +36,7 @@ import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent;
 import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent;
 import net.neoforged.neoforge.client.event.ViewportEvent;
@@ -44,10 +46,15 @@ import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlers
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Set;
+import java.util.UUID;
+
 @Mod(value = ProtocolConstants.MOD_ID, dist = Dist.CLIENT)
 @EventBusSubscriber(modid = ProtocolConstants.MOD_ID, value = Dist.CLIENT)
 public final class VoxySeeUNeoForgeClient {
     private static final Logger LOGGER = LoggerFactory.getLogger("SeeU");
+    private static final ContextKey<Set<UUID>> VANILLA_PLAYERS =
+            new ContextKey<>(Identifier.fromNamespaceAndPath(ProtocolConstants.MOD_ID, "vanilla_players"));
     private static final KeyMapping.Category SEEU_KEY_CATEGORY =
             new KeyMapping.Category(Identifier.parse("seeu:general"));
     private static final KeyMapping OPEN_CONFIG_KEY = new KeyMapping(
@@ -124,12 +131,23 @@ public final class VoxySeeUNeoForgeClient {
     }
 
     @SubscribeEvent
+    public static void onExtractLevelRenderState(ExtractLevelRenderStateEvent event) {
+        ensureLoaded();
+        var levelState = event.getRenderState();
+        levelState.setRenderData(
+                VANILLA_PLAYERS,
+                renderer.collectVanillaPlayers(event.getLevel(), event.getCamera(), levelState)
+        );
+    }
+
+    @SubscribeEvent
     public static void onRenderLevel(SubmitCustomGeometryEvent event) {
         ensureLoaded();
         renderer.render(
                 event.getPoseStack(),
                 event.getLevelRenderState(),
-                event.getSubmitNodeCollector()
+                event.getSubmitNodeCollector(),
+                event.getLevelRenderState().getRenderDataOrDefault(VANILLA_PLAYERS, Set.of())
         );
     }
 

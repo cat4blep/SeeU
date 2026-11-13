@@ -4,6 +4,7 @@ import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.keryeshka.voxyseeu.common.protocol.FarItemSnapshot;
 import dev.keryeshka.voxyseeu.common.protocol.FarPlayerMetadata;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.multiplayer.ClientPacketListener;
@@ -13,6 +14,7 @@ import net.minecraft.client.player.RemotePlayer;
 import net.minecraft.client.renderer.SubmitNodeCollector;
 import net.minecraft.client.renderer.culling.Frustum;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
+import net.minecraft.client.renderer.entity.state.AvatarRenderState;
 import net.minecraft.client.renderer.state.level.LevelRenderState;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
@@ -23,6 +25,7 @@ import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.Pose;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
@@ -68,10 +71,27 @@ public final class FarPlayerRenderer {
         loggedFirstSubmission = false;
     }
 
+    public Set<UUID> collectVanillaPlayers(ClientLevel level, Camera camera, LevelRenderState renderState) {
+        if (!config.enabled || !tracker.hasReceivedPacket()) {
+            return Set.of();
+        }
+        Set<UUID> vanillaPlayers = new HashSet<>();
+        for (var entityState : renderState.entityRenderStates) {
+            if (entityState instanceof AvatarRenderState avatar && level.getEntity(avatar.id) instanceof Player player) {
+                vanillaPlayers.add(player.getUUID());
+            }
+        }
+        if (!camera.isDetached() && camera.entity() instanceof Player player) {
+            vanillaPlayers.add(player.getUUID());
+        }
+        return vanillaPlayers;
+    }
+
     public void render(
             PoseStack poseStack,
             LevelRenderState levelRenderState,
-            SubmitNodeCollector submitNodeCollector
+            SubmitNodeCollector submitNodeCollector,
+            Set<UUID> vanillaPlayers
     ) {
         Minecraft minecraft = Minecraft.getInstance();
         if (!config.enabled) {
@@ -104,8 +124,6 @@ public final class FarPlayerRenderer {
                 * config.maximumRenderDistanceBlocks;
         double maximumAnimationDistanceSquared = (double) config.maximumAnimationDistanceBlocks
                 * config.maximumAnimationDistanceBlocks;
-        double vanillaRenderDistance = minecraft.options.getEffectiveRenderDistance() * 16.0D + 16.0D;
-        double vanillaRenderDistanceSquared = vanillaRenderDistance * vanillaRenderDistance;
 
         activePlayers.clear();
         activeVehicles.clear();
@@ -117,11 +135,7 @@ public final class FarPlayerRenderer {
                 continue;
             }
 
-            int chunkX = Mth.floor(position.x) >> 4;
-            int chunkZ = Mth.floor(position.z) >> 4;
-            boolean chunkLoaded = level.hasChunk(chunkX, chunkZ);
-            boolean realPlayerStillPresent = level.getPlayerByUUID(tracked.uuid()) != null;
-            if (realPlayerStillPresent && chunkLoaded && distanceSquared <= vanillaRenderDistanceSquared) {
+            if (vanillaPlayers.contains(tracked.uuid())) {
                 continue;
             }
 
